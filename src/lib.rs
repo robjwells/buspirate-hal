@@ -1,9 +1,12 @@
 mod bpio2_generated;
 
-pub use bpio2_generated::bpio2;
+pub use bpio2_generated::bpio;
+use flatbuffers::FlatBufferBuilder;
 
 /// HAL wrapper
-pub struct BusPirate;
+pub struct BusPirate {
+    i2c_speed: u32,
+}
 
 #[allow(dead_code)]
 struct Request<'a>(&'a [u8]);
@@ -11,9 +14,35 @@ struct Request<'a>(&'a [u8]);
 struct Response<'a>(&'a [u8]);
 
 impl BusPirate {
-    #[allow(dead_code)]
     fn transfer(&mut self, _req: Request) -> Result<Response, crate::error::Error> {
         todo!()
+    }
+
+    /// Put the Bus Pirate into I2C mode.
+    fn enter_i2c_mode(
+        &mut self,
+        builder: &mut FlatBufferBuilder,
+    ) -> Result<(), crate::error::Error> {
+        let i2c_string = builder.create_string("I2C");
+        let i2c_config =
+            bpio::I2CConfig::create(builder, &bpio::I2CConfigArgs { speed: self.i2c_speed });
+
+        let mut status_request = bpio::StatusRequestBuilder::new(builder);
+        status_request.add_name(i2c_string);
+        status_request.add_configuration_type(bpio::ModeConfiguration::I2CConfig);
+        status_request.add_configuration(i2c_config.as_union_value());
+        let status_request = status_request.finish();
+
+        let mut packet = bpio::RequestPacketBuilder::new(builder);
+        packet.add_contents_type(bpio::RequestPacketContents::StatusRequest);
+        packet.add_contents(status_request.as_union_value());
+        let packet = packet.finish();
+
+        eprintln!("Status request packet: {packet:#?}");
+        builder.finish(packet, None);
+
+        self.transfer(Request(builder.finished_data()))?;
+        Ok(())
     }
 }
 
@@ -23,7 +52,7 @@ mod eh_i2c {
     use embedded_hal::i2c::{ErrorType, I2c, Operation};
 
     use crate::{
-        bpio2::{self, PacketContents, PacketType},
+        bpio::{self, RequestPacketContents},
         error::Error,
         Request,
     };
@@ -35,7 +64,6 @@ mod eh_i2c {
     }
 
     impl I2c for BusPirate {
-        #[allow(unused)]
         fn transaction(
             &mut self,
             address: u8,
@@ -45,6 +73,9 @@ mod eh_i2c {
 
             // TODO: Choose a sensible capacity for the flatbuffer builder.
             let mut builder = flatbuffers::FlatBufferBuilder::with_capacity(1024);
+
+            // Put the Bus Pirate into I2C mode.
+            self.enter_i2c_mode(&mut builder)?;
 
             type PreviousOp<'a> = Option<Discriminant<Operation<'a>>>;
             // Track the type (Read/Write) of the previous I2C operation to allow
@@ -70,30 +101,27 @@ mod eh_i2c {
                             return Err(Error::Other);
                         };
 
-                        let mut i2c_req = bpio2::I2CRWRequestBuilder::new(&mut builder);
-                        i2c_req.add_i2cstart(needs_start(previous_operation, operation));
-                        i2c_req.add_i2cstart(false);
-                        i2c_req.add_i2cstop(false);
-                        i2c_req.add_i2caddr(address);
-                        i2c_req.add_i2creadbytes(bytes_to_read);
+                        let mut i2c_req = bpio::DataRequestBuilder::new(&mut builder);
+                        i2c_req.add_dstart(needs_start(previous_operation, operation));
+                        i2c_req.add_dstop(false);
+                        i2c_req.add_daddr(address);
+                        i2c_req.add_dreadbytes(bytes_to_read);
                         i2c_req.finish()
                     }
                     Operation::Write(bytes_to_write) => {
                         let write_data = builder.create_vector(bytes_to_write);
-                        let mut i2c_req = bpio2::I2CRWRequestBuilder::new(&mut builder);
-                        i2c_req.add_i2cstart(needs_start(previous_operation, operation));
-                        i2c_req.add_i2cstop(false);
-                        i2c_req.add_i2caddr(address);
-                        i2c_req.add_i2creadbytes(0);
-                        i2c_req.add_i2cdata(write_data);
+                        let mut i2c_req = bpio::DataRequestBuilder::new(&mut builder);
+                        i2c_req.add_dstart(needs_start(previous_operation, operation));
+                        i2c_req.add_dstop(false);
+                        i2c_req.add_daddr(address);
+                        i2c_req.add_dreadbytes(0);
+                        i2c_req.add_ddata(write_data);
                         i2c_req.finish()
                     }
                 };
 
-                let mut packet = bpio2::PacketBuilder::new(&mut builder);
-                // TODO: Question: is this duplication necessary?
-                packet.add_type_(bpio2::PacketType::I2CRWRequest);
-                packet.add_contents_type(bpio2::PacketContents::I2CRWRequest);
+                let mut packet = bpio::RequestPacketBuilder::new(&mut builder);
+                packet.add_contents_type(bpio::RequestPacketContents::DataRequest);
                 packet.add_contents(i2c_req.as_union_value());
                 let packet = packet.finish();
 
@@ -103,30 +131,33 @@ mod eh_i2c {
                 // Update the previous operation for Repeated-Start purposes.
                 previous_operation = Some(discriminant(operation));
 
-                // TODO: Handle the error here properly. Does it need cleaning up the
-                // open I2C transaction?
-                let response = self.transfer(Request(builder.finished_data())).unwrap();
+                let Ok(response) = self.transfer(Request(builder.finished_data())) else {
+                    // Does this also need I2C transaction cleanup (issue Stop)?
+                    todo!("Handle transfer error.");
+                };
 
-                // TODO: Handle flatbuffer errors (what are they?)
-                let packet = bpio2::root_as_packet(response.0).unwrap();
+                let Ok(packet) = bpio::root_as_response_packet(response.0) else {
+                    todo!("Handle errors from flatbuffer");
+                };
                 eprintln!("Response packet: {packet:#?}");
 
-                // TODO: Confirm the packet is actually an i2c response or return
-                // an error (maybe UnexpectedPacketType or something like that).
-                // TODO: Question: why is the method named like that? (i2_cresponse)
-                let i2c_resp = packet.contents_as_i2_cresponse().unwrap();
+                let Some(i2c_resp) = packet.contents_as_data_response() else {
+                    todo!("Confirm response is actually a data response or return an error.")
+                };
 
-                if let Some(error_message) = i2c_resp.error_message() {
+                if let Some(_error_message) = i2c_resp.derror_message() {
                     todo!("Return an error with the message.")
                 }
 
-                if !i2c_resp.ack() {
-                    todo!("Return a nack error");
-                }
+                // TODO: Question: is ack information accessible elsewhere now (2025-07-18)
+                // that the response structure has changed to remove it?
+                // if !i2c_resp.ack() {
+                //     todo!("Return a nack error");
+                // }
 
                 if let Operation::Read(read_buffer) = operation {
                     // if Some(read_data) = i2c_resp.data()
-                    let Some(read_data) = i2c_resp.data() else {
+                    let Some(read_data) = i2c_resp.ddata() else {
                         todo!("Missing data, return an error.");
                     };
                     read_buffer.copy_from_slice(read_data.bytes());
@@ -135,15 +166,14 @@ mod eh_i2c {
 
             // Send the final Stop condition.
             builder.reset();
-            let mut i2c_req = bpio2::I2CRWRequestBuilder::new(&mut builder);
-            i2c_req.add_i2cstart(false);
-            i2c_req.add_i2cstop(true);
-            i2c_req.add_i2creadbytes(0);
+            let mut i2c_req = bpio::DataRequestBuilder::new(&mut builder);
+            i2c_req.add_dstart(false);
+            i2c_req.add_dstop(true);
+            i2c_req.add_dreadbytes(0);
             let i2c_req = i2c_req.finish();
 
-            let mut packet = bpio2::PacketBuilder::new(&mut builder);
-            packet.add_type_(PacketType::I2CRWRequest);
-            packet.add_contents_type(PacketContents::I2CRWRequest);
+            let mut packet = bpio::RequestPacketBuilder::new(&mut builder);
+            packet.add_contents_type(RequestPacketContents::DataRequest);
             packet.add_contents(i2c_req.as_union_value());
             let packet = packet.finish();
 

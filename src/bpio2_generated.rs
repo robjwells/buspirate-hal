@@ -10,7 +10,7 @@ extern crate flatbuffers;
 use self::flatbuffers::{EndianScalar, Follow};
 
 #[allow(unused_imports, dead_code)]
-pub mod bpio2 {
+pub mod bpio {
 
   use core::mem;
   use core::cmp::Ordering;
@@ -19,129 +19,40 @@ pub mod bpio2 {
   use self::flatbuffers::{EndianScalar, Follow};
 
 #[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
-pub const ENUM_MIN_PACKET_TYPE: u8 = 0;
+pub const ENUM_MIN_MODE_CONFIGURATION: u8 = 0;
 #[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
-pub const ENUM_MAX_PACKET_TYPE: u8 = 1;
+pub const ENUM_MAX_MODE_CONFIGURATION: u8 = 1;
 #[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
 #[allow(non_camel_case_types)]
-pub const ENUM_VALUES_PACKET_TYPE: [PacketType; 2] = [
-  PacketType::I2CRWRequest,
-  PacketType::I2CResponse,
+pub const ENUM_VALUES_MODE_CONFIGURATION: [ModeConfiguration; 2] = [
+  ModeConfiguration::NONE,
+  ModeConfiguration::I2CConfig,
 ];
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 #[repr(transparent)]
-pub struct PacketType(pub u8);
+pub struct ModeConfiguration(pub u8);
 #[allow(non_upper_case_globals)]
-impl PacketType {
-  pub const I2CRWRequest: Self = Self(0);
-  pub const I2CResponse: Self = Self(1);
+impl ModeConfiguration {
+  pub const NONE: Self = Self(0);
+  pub const I2CConfig: Self = Self(1);
 
   pub const ENUM_MIN: u8 = 0;
   pub const ENUM_MAX: u8 = 1;
   pub const ENUM_VALUES: &'static [Self] = &[
-    Self::I2CRWRequest,
-    Self::I2CResponse,
-  ];
-  /// Returns the variant's name or "" if unknown.
-  pub fn variant_name(self) -> Option<&'static str> {
-    match self {
-      Self::I2CRWRequest => Some("I2CRWRequest"),
-      Self::I2CResponse => Some("I2CResponse"),
-      _ => None,
-    }
-  }
-}
-impl core::fmt::Debug for PacketType {
-  fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
-    if let Some(name) = self.variant_name() {
-      f.write_str(name)
-    } else {
-      f.write_fmt(format_args!("<UNKNOWN {:?}>", self.0))
-    }
-  }
-}
-impl<'a> flatbuffers::Follow<'a> for PacketType {
-  type Inner = Self;
-  #[inline]
-  unsafe fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-    let b = flatbuffers::read_scalar_at::<u8>(buf, loc);
-    Self(b)
-  }
-}
-
-impl flatbuffers::Push for PacketType {
-    type Output = PacketType;
-    #[inline]
-    unsafe fn push(&self, dst: &mut [u8], _written_len: usize) {
-        flatbuffers::emplace_scalar::<u8>(dst, self.0);
-    }
-}
-
-impl flatbuffers::EndianScalar for PacketType {
-  type Scalar = u8;
-  #[inline]
-  fn to_little_endian(self) -> u8 {
-    self.0.to_le()
-  }
-  #[inline]
-  #[allow(clippy::wrong_self_convention)]
-  fn from_little_endian(v: u8) -> Self {
-    let b = u8::from_le(v);
-    Self(b)
-  }
-}
-
-impl<'a> flatbuffers::Verifiable for PacketType {
-  #[inline]
-  fn run_verifier(
-    v: &mut flatbuffers::Verifier, pos: usize
-  ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
-    use self::flatbuffers::Verifiable;
-    u8::run_verifier(v, pos)
-  }
-}
-
-impl flatbuffers::SimpleToVerifyInSlice for PacketType {}
-#[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
-pub const ENUM_MIN_PACKET_CONTENTS: u8 = 0;
-#[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
-pub const ENUM_MAX_PACKET_CONTENTS: u8 = 2;
-#[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
-#[allow(non_camel_case_types)]
-pub const ENUM_VALUES_PACKET_CONTENTS: [PacketContents; 3] = [
-  PacketContents::NONE,
-  PacketContents::I2CRWRequest,
-  PacketContents::I2CResponse,
-];
-
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
-#[repr(transparent)]
-pub struct PacketContents(pub u8);
-#[allow(non_upper_case_globals)]
-impl PacketContents {
-  pub const NONE: Self = Self(0);
-  pub const I2CRWRequest: Self = Self(1);
-  pub const I2CResponse: Self = Self(2);
-
-  pub const ENUM_MIN: u8 = 0;
-  pub const ENUM_MAX: u8 = 2;
-  pub const ENUM_VALUES: &'static [Self] = &[
     Self::NONE,
-    Self::I2CRWRequest,
-    Self::I2CResponse,
+    Self::I2CConfig,
   ];
   /// Returns the variant's name or "" if unknown.
   pub fn variant_name(self) -> Option<&'static str> {
     match self {
       Self::NONE => Some("NONE"),
-      Self::I2CRWRequest => Some("I2CRWRequest"),
-      Self::I2CResponse => Some("I2CResponse"),
+      Self::I2CConfig => Some("I2CConfig"),
       _ => None,
     }
   }
 }
-impl core::fmt::Debug for PacketContents {
+impl core::fmt::Debug for ModeConfiguration {
   fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
     if let Some(name) = self.variant_name() {
       f.write_str(name)
@@ -150,7 +61,7 @@ impl core::fmt::Debug for PacketContents {
     }
   }
 }
-impl<'a> flatbuffers::Follow<'a> for PacketContents {
+impl<'a> flatbuffers::Follow<'a> for ModeConfiguration {
   type Inner = Self;
   #[inline]
   unsafe fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
@@ -159,15 +70,15 @@ impl<'a> flatbuffers::Follow<'a> for PacketContents {
   }
 }
 
-impl flatbuffers::Push for PacketContents {
-    type Output = PacketContents;
+impl flatbuffers::Push for ModeConfiguration {
+    type Output = ModeConfiguration;
     #[inline]
     unsafe fn push(&self, dst: &mut [u8], _written_len: usize) {
         flatbuffers::emplace_scalar::<u8>(dst, self.0);
     }
 }
 
-impl flatbuffers::EndianScalar for PacketContents {
+impl flatbuffers::EndianScalar for ModeConfiguration {
   type Scalar = u8;
   #[inline]
   fn to_little_endian(self) -> u8 {
@@ -181,7 +92,7 @@ impl flatbuffers::EndianScalar for PacketContents {
   }
 }
 
-impl<'a> flatbuffers::Verifiable for PacketContents {
+impl<'a> flatbuffers::Verifiable for ModeConfiguration {
   #[inline]
   fn run_verifier(
     v: &mut flatbuffers::Verifier, pos: usize
@@ -191,340 +102,1092 @@ impl<'a> flatbuffers::Verifiable for PacketContents {
   }
 }
 
-impl flatbuffers::SimpleToVerifyInSlice for PacketContents {}
-pub struct PacketContentsUnionTableOffset {}
+impl flatbuffers::SimpleToVerifyInSlice for ModeConfiguration {}
+pub struct ModeConfigurationUnionTableOffset {}
 
-pub enum I2CRWRequestOffset {}
+#[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
+pub const ENUM_MIN_REQUEST_PACKET_CONTENTS: u8 = 0;
+#[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
+pub const ENUM_MAX_REQUEST_PACKET_CONTENTS: u8 = 2;
+#[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
+#[allow(non_camel_case_types)]
+pub const ENUM_VALUES_REQUEST_PACKET_CONTENTS: [RequestPacketContents; 3] = [
+  RequestPacketContents::NONE,
+  RequestPacketContents::StatusRequest,
+  RequestPacketContents::DataRequest,
+];
+
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+#[repr(transparent)]
+pub struct RequestPacketContents(pub u8);
+#[allow(non_upper_case_globals)]
+impl RequestPacketContents {
+  pub const NONE: Self = Self(0);
+  pub const StatusRequest: Self = Self(1);
+  pub const DataRequest: Self = Self(2);
+
+  pub const ENUM_MIN: u8 = 0;
+  pub const ENUM_MAX: u8 = 2;
+  pub const ENUM_VALUES: &'static [Self] = &[
+    Self::NONE,
+    Self::StatusRequest,
+    Self::DataRequest,
+  ];
+  /// Returns the variant's name or "" if unknown.
+  pub fn variant_name(self) -> Option<&'static str> {
+    match self {
+      Self::NONE => Some("NONE"),
+      Self::StatusRequest => Some("StatusRequest"),
+      Self::DataRequest => Some("DataRequest"),
+      _ => None,
+    }
+  }
+}
+impl core::fmt::Debug for RequestPacketContents {
+  fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+    if let Some(name) = self.variant_name() {
+      f.write_str(name)
+    } else {
+      f.write_fmt(format_args!("<UNKNOWN {:?}>", self.0))
+    }
+  }
+}
+impl<'a> flatbuffers::Follow<'a> for RequestPacketContents {
+  type Inner = Self;
+  #[inline]
+  unsafe fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    let b = flatbuffers::read_scalar_at::<u8>(buf, loc);
+    Self(b)
+  }
+}
+
+impl flatbuffers::Push for RequestPacketContents {
+    type Output = RequestPacketContents;
+    #[inline]
+    unsafe fn push(&self, dst: &mut [u8], _written_len: usize) {
+        flatbuffers::emplace_scalar::<u8>(dst, self.0);
+    }
+}
+
+impl flatbuffers::EndianScalar for RequestPacketContents {
+  type Scalar = u8;
+  #[inline]
+  fn to_little_endian(self) -> u8 {
+    self.0.to_le()
+  }
+  #[inline]
+  #[allow(clippy::wrong_self_convention)]
+  fn from_little_endian(v: u8) -> Self {
+    let b = u8::from_le(v);
+    Self(b)
+  }
+}
+
+impl<'a> flatbuffers::Verifiable for RequestPacketContents {
+  #[inline]
+  fn run_verifier(
+    v: &mut flatbuffers::Verifier, pos: usize
+  ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
+    use self::flatbuffers::Verifiable;
+    u8::run_verifier(v, pos)
+  }
+}
+
+impl flatbuffers::SimpleToVerifyInSlice for RequestPacketContents {}
+pub struct RequestPacketContentsUnionTableOffset {}
+
+#[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
+pub const ENUM_MIN_RESPONSE_PACKET_CONTENTS: u8 = 0;
+#[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
+pub const ENUM_MAX_RESPONSE_PACKET_CONTENTS: u8 = 2;
+#[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
+#[allow(non_camel_case_types)]
+pub const ENUM_VALUES_RESPONSE_PACKET_CONTENTS: [ResponsePacketContents; 3] = [
+  ResponsePacketContents::NONE,
+  ResponsePacketContents::StatusResponse,
+  ResponsePacketContents::DataResponse,
+];
+
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+#[repr(transparent)]
+pub struct ResponsePacketContents(pub u8);
+#[allow(non_upper_case_globals)]
+impl ResponsePacketContents {
+  pub const NONE: Self = Self(0);
+  pub const StatusResponse: Self = Self(1);
+  pub const DataResponse: Self = Self(2);
+
+  pub const ENUM_MIN: u8 = 0;
+  pub const ENUM_MAX: u8 = 2;
+  pub const ENUM_VALUES: &'static [Self] = &[
+    Self::NONE,
+    Self::StatusResponse,
+    Self::DataResponse,
+  ];
+  /// Returns the variant's name or "" if unknown.
+  pub fn variant_name(self) -> Option<&'static str> {
+    match self {
+      Self::NONE => Some("NONE"),
+      Self::StatusResponse => Some("StatusResponse"),
+      Self::DataResponse => Some("DataResponse"),
+      _ => None,
+    }
+  }
+}
+impl core::fmt::Debug for ResponsePacketContents {
+  fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+    if let Some(name) = self.variant_name() {
+      f.write_str(name)
+    } else {
+      f.write_fmt(format_args!("<UNKNOWN {:?}>", self.0))
+    }
+  }
+}
+impl<'a> flatbuffers::Follow<'a> for ResponsePacketContents {
+  type Inner = Self;
+  #[inline]
+  unsafe fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    let b = flatbuffers::read_scalar_at::<u8>(buf, loc);
+    Self(b)
+  }
+}
+
+impl flatbuffers::Push for ResponsePacketContents {
+    type Output = ResponsePacketContents;
+    #[inline]
+    unsafe fn push(&self, dst: &mut [u8], _written_len: usize) {
+        flatbuffers::emplace_scalar::<u8>(dst, self.0);
+    }
+}
+
+impl flatbuffers::EndianScalar for ResponsePacketContents {
+  type Scalar = u8;
+  #[inline]
+  fn to_little_endian(self) -> u8 {
+    self.0.to_le()
+  }
+  #[inline]
+  #[allow(clippy::wrong_self_convention)]
+  fn from_little_endian(v: u8) -> Self {
+    let b = u8::from_le(v);
+    Self(b)
+  }
+}
+
+impl<'a> flatbuffers::Verifiable for ResponsePacketContents {
+  #[inline]
+  fn run_verifier(
+    v: &mut flatbuffers::Verifier, pos: usize
+  ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
+    use self::flatbuffers::Verifiable;
+    u8::run_verifier(v, pos)
+  }
+}
+
+impl flatbuffers::SimpleToVerifyInSlice for ResponsePacketContents {}
+pub struct ResponsePacketContentsUnionTableOffset {}
+
+pub enum StatusResponseOffset {}
 #[derive(Copy, Clone, PartialEq)]
 
-pub struct I2CRWRequest<'a> {
+pub struct StatusResponse<'a> {
   pub _tab: flatbuffers::Table<'a>,
 }
 
-impl<'a> flatbuffers::Follow<'a> for I2CRWRequest<'a> {
-  type Inner = I2CRWRequest<'a>;
+impl<'a> flatbuffers::Follow<'a> for StatusResponse<'a> {
+  type Inner = StatusResponse<'a>;
   #[inline]
   unsafe fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
     Self { _tab: flatbuffers::Table::new(buf, loc) }
   }
 }
 
-impl<'a> I2CRWRequest<'a> {
-  pub const VT_I2CSTART: flatbuffers::VOffsetT = 4;
-  pub const VT_I2CADDR: flatbuffers::VOffsetT = 6;
-  pub const VT_I2CDATA: flatbuffers::VOffsetT = 8;
-  pub const VT_I2CREADBYTES: flatbuffers::VOffsetT = 10;
-  pub const VT_I2CSTOP: flatbuffers::VOffsetT = 12;
+impl<'a> StatusResponse<'a> {
+  pub const VT_HARDWARE_VERSION_MAJOR: flatbuffers::VOffsetT = 4;
+  pub const VT_HARDWARE_VERSION_MINOR: flatbuffers::VOffsetT = 6;
+  pub const VT_FIRMWARE_VERSION_MAJOR: flatbuffers::VOffsetT = 8;
+  pub const VT_FIRMWARE_VERSION_MINOR: flatbuffers::VOffsetT = 10;
+  pub const VT_MODES: flatbuffers::VOffsetT = 12;
 
   #[inline]
   pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
-    I2CRWRequest { _tab: table }
+    StatusResponse { _tab: table }
   }
   #[allow(unused_mut)]
   pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
     _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
-    args: &'args I2CRWRequestArgs<'args>
-  ) -> flatbuffers::WIPOffset<I2CRWRequest<'bldr>> {
-    let mut builder = I2CRWRequestBuilder::new(_fbb);
-    builder.add_i2creadbytes(args.i2creadbytes);
-    if let Some(x) = args.i2cdata { builder.add_i2cdata(x); }
-    builder.add_i2cstop(args.i2cstop);
-    builder.add_i2caddr(args.i2caddr);
-    builder.add_i2cstart(args.i2cstart);
+    args: &'args StatusResponseArgs<'args>
+  ) -> flatbuffers::WIPOffset<StatusResponse<'bldr>> {
+    let mut builder = StatusResponseBuilder::new(_fbb);
+    if let Some(x) = args.modes { builder.add_modes(x); }
+    builder.add_firmware_version_minor(args.firmware_version_minor);
+    builder.add_firmware_version_major(args.firmware_version_major);
+    builder.add_hardware_version_minor(args.hardware_version_minor);
+    builder.add_hardware_version_major(args.hardware_version_major);
     builder.finish()
   }
 
 
   #[inline]
-  pub fn i2cstart(&self) -> bool {
+  pub fn hardware_version_major(&self) -> u8 {
     // Safety:
     // Created from valid Table for this object
     // which contains a valid value in this slot
-    unsafe { self._tab.get::<bool>(I2CRWRequest::VT_I2CSTART, Some(true)).unwrap()}
+    unsafe { self._tab.get::<u8>(StatusResponse::VT_HARDWARE_VERSION_MAJOR, Some(0)).unwrap()}
   }
   #[inline]
-  pub fn i2caddr(&self) -> u8 {
+  pub fn hardware_version_minor(&self) -> u8 {
     // Safety:
     // Created from valid Table for this object
     // which contains a valid value in this slot
-    unsafe { self._tab.get::<u8>(I2CRWRequest::VT_I2CADDR, Some(0)).unwrap()}
+    unsafe { self._tab.get::<u8>(StatusResponse::VT_HARDWARE_VERSION_MINOR, Some(0)).unwrap()}
   }
   #[inline]
-  pub fn i2cdata(&self) -> Option<flatbuffers::Vector<'a, u8>> {
+  pub fn firmware_version_major(&self) -> u8 {
     // Safety:
     // Created from valid Table for this object
     // which contains a valid value in this slot
-    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, u8>>>(I2CRWRequest::VT_I2CDATA, None)}
+    unsafe { self._tab.get::<u8>(StatusResponse::VT_FIRMWARE_VERSION_MAJOR, Some(0)).unwrap()}
   }
   #[inline]
-  pub fn i2creadbytes(&self) -> u32 {
+  pub fn firmware_version_minor(&self) -> u8 {
     // Safety:
     // Created from valid Table for this object
     // which contains a valid value in this slot
-    unsafe { self._tab.get::<u32>(I2CRWRequest::VT_I2CREADBYTES, Some(0)).unwrap()}
+    unsafe { self._tab.get::<u8>(StatusResponse::VT_FIRMWARE_VERSION_MINOR, Some(0)).unwrap()}
   }
   #[inline]
-  pub fn i2cstop(&self) -> bool {
+  pub fn modes(&self) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Mode<'a>>>> {
     // Safety:
     // Created from valid Table for this object
     // which contains a valid value in this slot
-    unsafe { self._tab.get::<bool>(I2CRWRequest::VT_I2CSTOP, Some(true)).unwrap()}
+    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Mode>>>>(StatusResponse::VT_MODES, None)}
   }
 }
 
-impl flatbuffers::Verifiable for I2CRWRequest<'_> {
+impl flatbuffers::Verifiable for StatusResponse<'_> {
   #[inline]
   fn run_verifier(
     v: &mut flatbuffers::Verifier, pos: usize
   ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
     use self::flatbuffers::Verifiable;
     v.visit_table(pos)?
-     .visit_field::<bool>("i2cstart", Self::VT_I2CSTART, false)?
-     .visit_field::<u8>("i2caddr", Self::VT_I2CADDR, false)?
-     .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, u8>>>("i2cdata", Self::VT_I2CDATA, false)?
-     .visit_field::<u32>("i2creadbytes", Self::VT_I2CREADBYTES, false)?
-     .visit_field::<bool>("i2cstop", Self::VT_I2CSTOP, false)?
+     .visit_field::<u8>("hardware_version_major", Self::VT_HARDWARE_VERSION_MAJOR, false)?
+     .visit_field::<u8>("hardware_version_minor", Self::VT_HARDWARE_VERSION_MINOR, false)?
+     .visit_field::<u8>("firmware_version_major", Self::VT_FIRMWARE_VERSION_MAJOR, false)?
+     .visit_field::<u8>("firmware_version_minor", Self::VT_FIRMWARE_VERSION_MINOR, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<Mode>>>>("modes", Self::VT_MODES, false)?
      .finish();
     Ok(())
   }
 }
-pub struct I2CRWRequestArgs<'a> {
-    pub i2cstart: bool,
-    pub i2caddr: u8,
-    pub i2cdata: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, u8>>>,
-    pub i2creadbytes: u32,
-    pub i2cstop: bool,
+pub struct StatusResponseArgs<'a> {
+    pub hardware_version_major: u8,
+    pub hardware_version_minor: u8,
+    pub firmware_version_major: u8,
+    pub firmware_version_minor: u8,
+    pub modes: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Mode<'a>>>>>,
 }
-impl<'a> Default for I2CRWRequestArgs<'a> {
+impl<'a> Default for StatusResponseArgs<'a> {
   #[inline]
   fn default() -> Self {
-    I2CRWRequestArgs {
-      i2cstart: true,
-      i2caddr: 0,
-      i2cdata: None,
-      i2creadbytes: 0,
-      i2cstop: true,
+    StatusResponseArgs {
+      hardware_version_major: 0,
+      hardware_version_minor: 0,
+      firmware_version_major: 0,
+      firmware_version_minor: 0,
+      modes: None,
     }
   }
 }
 
-pub struct I2CRWRequestBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
+pub struct StatusResponseBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
   fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> I2CRWRequestBuilder<'a, 'b, A> {
+impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> StatusResponseBuilder<'a, 'b, A> {
   #[inline]
-  pub fn add_i2cstart(&mut self, i2cstart: bool) {
-    self.fbb_.push_slot::<bool>(I2CRWRequest::VT_I2CSTART, i2cstart, true);
+  pub fn add_hardware_version_major(&mut self, hardware_version_major: u8) {
+    self.fbb_.push_slot::<u8>(StatusResponse::VT_HARDWARE_VERSION_MAJOR, hardware_version_major, 0);
   }
   #[inline]
-  pub fn add_i2caddr(&mut self, i2caddr: u8) {
-    self.fbb_.push_slot::<u8>(I2CRWRequest::VT_I2CADDR, i2caddr, 0);
+  pub fn add_hardware_version_minor(&mut self, hardware_version_minor: u8) {
+    self.fbb_.push_slot::<u8>(StatusResponse::VT_HARDWARE_VERSION_MINOR, hardware_version_minor, 0);
   }
   #[inline]
-  pub fn add_i2cdata(&mut self, i2cdata: flatbuffers::WIPOffset<flatbuffers::Vector<'b , u8>>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(I2CRWRequest::VT_I2CDATA, i2cdata);
+  pub fn add_firmware_version_major(&mut self, firmware_version_major: u8) {
+    self.fbb_.push_slot::<u8>(StatusResponse::VT_FIRMWARE_VERSION_MAJOR, firmware_version_major, 0);
   }
   #[inline]
-  pub fn add_i2creadbytes(&mut self, i2creadbytes: u32) {
-    self.fbb_.push_slot::<u32>(I2CRWRequest::VT_I2CREADBYTES, i2creadbytes, 0);
+  pub fn add_firmware_version_minor(&mut self, firmware_version_minor: u8) {
+    self.fbb_.push_slot::<u8>(StatusResponse::VT_FIRMWARE_VERSION_MINOR, firmware_version_minor, 0);
   }
   #[inline]
-  pub fn add_i2cstop(&mut self, i2cstop: bool) {
-    self.fbb_.push_slot::<bool>(I2CRWRequest::VT_I2CSTOP, i2cstop, true);
+  pub fn add_modes(&mut self, modes: flatbuffers::WIPOffset<flatbuffers::Vector<'b , flatbuffers::ForwardsUOffset<Mode<'b >>>>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(StatusResponse::VT_MODES, modes);
   }
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> I2CRWRequestBuilder<'a, 'b, A> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> StatusResponseBuilder<'a, 'b, A> {
     let start = _fbb.start_table();
-    I2CRWRequestBuilder {
+    StatusResponseBuilder {
       fbb_: _fbb,
       start_: start,
     }
   }
   #[inline]
-  pub fn finish(self) -> flatbuffers::WIPOffset<I2CRWRequest<'a>> {
+  pub fn finish(self) -> flatbuffers::WIPOffset<StatusResponse<'a>> {
     let o = self.fbb_.end_table(self.start_);
     flatbuffers::WIPOffset::new(o.value())
   }
 }
 
-impl core::fmt::Debug for I2CRWRequest<'_> {
+impl core::fmt::Debug for StatusResponse<'_> {
   fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-    let mut ds = f.debug_struct("I2CRWRequest");
-      ds.field("i2cstart", &self.i2cstart());
-      ds.field("i2caddr", &self.i2caddr());
-      ds.field("i2cdata", &self.i2cdata());
-      ds.field("i2creadbytes", &self.i2creadbytes());
-      ds.field("i2cstop", &self.i2cstop());
+    let mut ds = f.debug_struct("StatusResponse");
+      ds.field("hardware_version_major", &self.hardware_version_major());
+      ds.field("hardware_version_minor", &self.hardware_version_minor());
+      ds.field("firmware_version_major", &self.firmware_version_major());
+      ds.field("firmware_version_minor", &self.firmware_version_minor());
+      ds.field("modes", &self.modes());
       ds.finish()
   }
 }
-pub enum I2CResponseOffset {}
+pub enum ModeOffset {}
 #[derive(Copy, Clone, PartialEq)]
 
-pub struct I2CResponse<'a> {
+pub struct Mode<'a> {
   pub _tab: flatbuffers::Table<'a>,
 }
 
-impl<'a> flatbuffers::Follow<'a> for I2CResponse<'a> {
-  type Inner = I2CResponse<'a>;
+impl<'a> flatbuffers::Follow<'a> for Mode<'a> {
+  type Inner = Mode<'a>;
   #[inline]
   unsafe fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
     Self { _tab: flatbuffers::Table::new(buf, loc) }
   }
 }
 
-impl<'a> I2CResponse<'a> {
-  pub const VT_ACK: flatbuffers::VOffsetT = 4;
-  pub const VT_DATA: flatbuffers::VOffsetT = 6;
-  pub const VT_ERROR_MESSAGE: flatbuffers::VOffsetT = 8;
+impl<'a> Mode<'a> {
+  pub const VT_ID: flatbuffers::VOffsetT = 4;
+  pub const VT_NAME: flatbuffers::VOffsetT = 6;
 
   #[inline]
   pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
-    I2CResponse { _tab: table }
+    Mode { _tab: table }
   }
   #[allow(unused_mut)]
   pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
     _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
-    args: &'args I2CResponseArgs<'args>
-  ) -> flatbuffers::WIPOffset<I2CResponse<'bldr>> {
-    let mut builder = I2CResponseBuilder::new(_fbb);
-    if let Some(x) = args.error_message { builder.add_error_message(x); }
-    if let Some(x) = args.data { builder.add_data(x); }
-    builder.add_ack(args.ack);
+    args: &'args ModeArgs<'args>
+  ) -> flatbuffers::WIPOffset<Mode<'bldr>> {
+    let mut builder = ModeBuilder::new(_fbb);
+    if let Some(x) = args.name { builder.add_name(x); }
+    builder.add_id(args.id);
     builder.finish()
   }
 
 
   #[inline]
-  pub fn ack(&self) -> bool {
+  pub fn id(&self) -> u8 {
     // Safety:
     // Created from valid Table for this object
     // which contains a valid value in this slot
-    unsafe { self._tab.get::<bool>(I2CResponse::VT_ACK, Some(false)).unwrap()}
+    unsafe { self._tab.get::<u8>(Mode::VT_ID, Some(0)).unwrap()}
   }
   #[inline]
-  pub fn data(&self) -> Option<flatbuffers::Vector<'a, u8>> {
+  pub fn name(&self) -> Option<&'a str> {
     // Safety:
     // Created from valid Table for this object
     // which contains a valid value in this slot
-    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, u8>>>(I2CResponse::VT_DATA, None)}
-  }
-  #[inline]
-  pub fn error_message(&self) -> Option<&'a str> {
-    // Safety:
-    // Created from valid Table for this object
-    // which contains a valid value in this slot
-    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(I2CResponse::VT_ERROR_MESSAGE, None)}
+    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(Mode::VT_NAME, None)}
   }
 }
 
-impl flatbuffers::Verifiable for I2CResponse<'_> {
+impl flatbuffers::Verifiable for Mode<'_> {
   #[inline]
   fn run_verifier(
     v: &mut flatbuffers::Verifier, pos: usize
   ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
     use self::flatbuffers::Verifiable;
     v.visit_table(pos)?
-     .visit_field::<bool>("ack", Self::VT_ACK, false)?
-     .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, u8>>>("data", Self::VT_DATA, false)?
-     .visit_field::<flatbuffers::ForwardsUOffset<&str>>("error_message", Self::VT_ERROR_MESSAGE, false)?
+     .visit_field::<u8>("id", Self::VT_ID, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<&str>>("name", Self::VT_NAME, false)?
      .finish();
     Ok(())
   }
 }
-pub struct I2CResponseArgs<'a> {
-    pub ack: bool,
-    pub data: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, u8>>>,
-    pub error_message: Option<flatbuffers::WIPOffset<&'a str>>,
+pub struct ModeArgs<'a> {
+    pub id: u8,
+    pub name: Option<flatbuffers::WIPOffset<&'a str>>,
 }
-impl<'a> Default for I2CResponseArgs<'a> {
+impl<'a> Default for ModeArgs<'a> {
   #[inline]
   fn default() -> Self {
-    I2CResponseArgs {
-      ack: false,
-      data: None,
-      error_message: None,
+    ModeArgs {
+      id: 0,
+      name: None,
     }
   }
 }
 
-pub struct I2CResponseBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
+pub struct ModeBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
   fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> I2CResponseBuilder<'a, 'b, A> {
+impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> ModeBuilder<'a, 'b, A> {
   #[inline]
-  pub fn add_ack(&mut self, ack: bool) {
-    self.fbb_.push_slot::<bool>(I2CResponse::VT_ACK, ack, false);
+  pub fn add_id(&mut self, id: u8) {
+    self.fbb_.push_slot::<u8>(Mode::VT_ID, id, 0);
   }
   #[inline]
-  pub fn add_data(&mut self, data: flatbuffers::WIPOffset<flatbuffers::Vector<'b , u8>>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(I2CResponse::VT_DATA, data);
+  pub fn add_name(&mut self, name: flatbuffers::WIPOffset<&'b  str>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Mode::VT_NAME, name);
   }
   #[inline]
-  pub fn add_error_message(&mut self, error_message: flatbuffers::WIPOffset<&'b  str>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(I2CResponse::VT_ERROR_MESSAGE, error_message);
-  }
-  #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> I2CResponseBuilder<'a, 'b, A> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> ModeBuilder<'a, 'b, A> {
     let start = _fbb.start_table();
-    I2CResponseBuilder {
+    ModeBuilder {
       fbb_: _fbb,
       start_: start,
     }
   }
   #[inline]
-  pub fn finish(self) -> flatbuffers::WIPOffset<I2CResponse<'a>> {
+  pub fn finish(self) -> flatbuffers::WIPOffset<Mode<'a>> {
     let o = self.fbb_.end_table(self.start_);
     flatbuffers::WIPOffset::new(o.value())
   }
 }
 
-impl core::fmt::Debug for I2CResponse<'_> {
+impl core::fmt::Debug for Mode<'_> {
   fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-    let mut ds = f.debug_struct("I2CResponse");
-      ds.field("ack", &self.ack());
-      ds.field("data", &self.data());
-      ds.field("error_message", &self.error_message());
+    let mut ds = f.debug_struct("Mode");
+      ds.field("id", &self.id());
+      ds.field("name", &self.name());
       ds.finish()
   }
 }
-pub enum PacketOffset {}
+pub enum I2CConfigOffset {}
 #[derive(Copy, Clone, PartialEq)]
 
-pub struct Packet<'a> {
+pub struct I2CConfig<'a> {
   pub _tab: flatbuffers::Table<'a>,
 }
 
-impl<'a> flatbuffers::Follow<'a> for Packet<'a> {
-  type Inner = Packet<'a>;
+impl<'a> flatbuffers::Follow<'a> for I2CConfig<'a> {
+  type Inner = I2CConfig<'a>;
   #[inline]
   unsafe fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
     Self { _tab: flatbuffers::Table::new(buf, loc) }
   }
 }
 
-impl<'a> Packet<'a> {
+impl<'a> I2CConfig<'a> {
+  pub const VT_SPEED: flatbuffers::VOffsetT = 4;
+
+  #[inline]
+  pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
+    I2CConfig { _tab: table }
+  }
+  #[allow(unused_mut)]
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
+    args: &'args I2CConfigArgs
+  ) -> flatbuffers::WIPOffset<I2CConfig<'bldr>> {
+    let mut builder = I2CConfigBuilder::new(_fbb);
+    builder.add_speed(args.speed);
+    builder.finish()
+  }
+
+
+  #[inline]
+  pub fn speed(&self) -> u32 {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<u32>(I2CConfig::VT_SPEED, Some(0)).unwrap()}
+  }
+}
+
+impl flatbuffers::Verifiable for I2CConfig<'_> {
+  #[inline]
+  fn run_verifier(
+    v: &mut flatbuffers::Verifier, pos: usize
+  ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
+    use self::flatbuffers::Verifiable;
+    v.visit_table(pos)?
+     .visit_field::<u32>("speed", Self::VT_SPEED, false)?
+     .finish();
+    Ok(())
+  }
+}
+pub struct I2CConfigArgs {
+    pub speed: u32,
+}
+impl<'a> Default for I2CConfigArgs {
+  #[inline]
+  fn default() -> Self {
+    I2CConfigArgs {
+      speed: 0,
+    }
+  }
+}
+
+pub struct I2CConfigBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
+  start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
+}
+impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> I2CConfigBuilder<'a, 'b, A> {
+  #[inline]
+  pub fn add_speed(&mut self, speed: u32) {
+    self.fbb_.push_slot::<u32>(I2CConfig::VT_SPEED, speed, 0);
+  }
+  #[inline]
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> I2CConfigBuilder<'a, 'b, A> {
+    let start = _fbb.start_table();
+    I2CConfigBuilder {
+      fbb_: _fbb,
+      start_: start,
+    }
+  }
+  #[inline]
+  pub fn finish(self) -> flatbuffers::WIPOffset<I2CConfig<'a>> {
+    let o = self.fbb_.end_table(self.start_);
+    flatbuffers::WIPOffset::new(o.value())
+  }
+}
+
+impl core::fmt::Debug for I2CConfig<'_> {
+  fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+    let mut ds = f.debug_struct("I2CConfig");
+      ds.field("speed", &self.speed());
+      ds.finish()
+  }
+}
+pub enum StatusRequestOffset {}
+#[derive(Copy, Clone, PartialEq)]
+
+pub struct StatusRequest<'a> {
+  pub _tab: flatbuffers::Table<'a>,
+}
+
+impl<'a> flatbuffers::Follow<'a> for StatusRequest<'a> {
+  type Inner = StatusRequest<'a>;
+  #[inline]
+  unsafe fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    Self { _tab: flatbuffers::Table::new(buf, loc) }
+  }
+}
+
+impl<'a> StatusRequest<'a> {
+  pub const VT_ID: flatbuffers::VOffsetT = 4;
+  pub const VT_NAME: flatbuffers::VOffsetT = 6;
+  pub const VT_CONFIGURATION_TYPE: flatbuffers::VOffsetT = 8;
+  pub const VT_CONFIGURATION: flatbuffers::VOffsetT = 10;
+
+  #[inline]
+  pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
+    StatusRequest { _tab: table }
+  }
+  #[allow(unused_mut)]
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
+    args: &'args StatusRequestArgs<'args>
+  ) -> flatbuffers::WIPOffset<StatusRequest<'bldr>> {
+    let mut builder = StatusRequestBuilder::new(_fbb);
+    if let Some(x) = args.configuration { builder.add_configuration(x); }
+    if let Some(x) = args.name { builder.add_name(x); }
+    builder.add_configuration_type(args.configuration_type);
+    builder.add_id(args.id);
+    builder.finish()
+  }
+
+
+  #[inline]
+  pub fn id(&self) -> u8 {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<u8>(StatusRequest::VT_ID, Some(0)).unwrap()}
+  }
+  #[inline]
+  pub fn name(&self) -> Option<&'a str> {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(StatusRequest::VT_NAME, None)}
+  }
+  #[inline]
+  pub fn configuration_type(&self) -> ModeConfiguration {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<ModeConfiguration>(StatusRequest::VT_CONFIGURATION_TYPE, Some(ModeConfiguration::NONE)).unwrap()}
+  }
+  #[inline]
+  pub fn configuration(&self) -> Option<flatbuffers::Table<'a>> {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Table<'a>>>(StatusRequest::VT_CONFIGURATION, None)}
+  }
+  #[inline]
+  #[allow(non_snake_case)]
+  pub fn configuration_as_i2_cconfig(&self) -> Option<I2CConfig<'a>> {
+    if self.configuration_type() == ModeConfiguration::I2CConfig {
+      self.configuration().map(|t| {
+       // Safety:
+       // Created from a valid Table for this object
+       // Which contains a valid union in this slot
+       unsafe { I2CConfig::init_from_table(t) }
+     })
+    } else {
+      None
+    }
+  }
+
+}
+
+impl flatbuffers::Verifiable for StatusRequest<'_> {
+  #[inline]
+  fn run_verifier(
+    v: &mut flatbuffers::Verifier, pos: usize
+  ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
+    use self::flatbuffers::Verifiable;
+    v.visit_table(pos)?
+     .visit_field::<u8>("id", Self::VT_ID, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<&str>>("name", Self::VT_NAME, false)?
+     .visit_union::<ModeConfiguration, _>("configuration_type", Self::VT_CONFIGURATION_TYPE, "configuration", Self::VT_CONFIGURATION, false, |key, v, pos| {
+        match key {
+          ModeConfiguration::I2CConfig => v.verify_union_variant::<flatbuffers::ForwardsUOffset<I2CConfig>>("ModeConfiguration::I2CConfig", pos),
+          _ => Ok(()),
+        }
+     })?
+     .finish();
+    Ok(())
+  }
+}
+pub struct StatusRequestArgs<'a> {
+    pub id: u8,
+    pub name: Option<flatbuffers::WIPOffset<&'a str>>,
+    pub configuration_type: ModeConfiguration,
+    pub configuration: Option<flatbuffers::WIPOffset<flatbuffers::UnionWIPOffset>>,
+}
+impl<'a> Default for StatusRequestArgs<'a> {
+  #[inline]
+  fn default() -> Self {
+    StatusRequestArgs {
+      id: 0,
+      name: None,
+      configuration_type: ModeConfiguration::NONE,
+      configuration: None,
+    }
+  }
+}
+
+pub struct StatusRequestBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
+  start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
+}
+impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> StatusRequestBuilder<'a, 'b, A> {
+  #[inline]
+  pub fn add_id(&mut self, id: u8) {
+    self.fbb_.push_slot::<u8>(StatusRequest::VT_ID, id, 0);
+  }
+  #[inline]
+  pub fn add_name(&mut self, name: flatbuffers::WIPOffset<&'b  str>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(StatusRequest::VT_NAME, name);
+  }
+  #[inline]
+  pub fn add_configuration_type(&mut self, configuration_type: ModeConfiguration) {
+    self.fbb_.push_slot::<ModeConfiguration>(StatusRequest::VT_CONFIGURATION_TYPE, configuration_type, ModeConfiguration::NONE);
+  }
+  #[inline]
+  pub fn add_configuration(&mut self, configuration: flatbuffers::WIPOffset<flatbuffers::UnionWIPOffset>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(StatusRequest::VT_CONFIGURATION, configuration);
+  }
+  #[inline]
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> StatusRequestBuilder<'a, 'b, A> {
+    let start = _fbb.start_table();
+    StatusRequestBuilder {
+      fbb_: _fbb,
+      start_: start,
+    }
+  }
+  #[inline]
+  pub fn finish(self) -> flatbuffers::WIPOffset<StatusRequest<'a>> {
+    let o = self.fbb_.end_table(self.start_);
+    flatbuffers::WIPOffset::new(o.value())
+  }
+}
+
+impl core::fmt::Debug for StatusRequest<'_> {
+  fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+    let mut ds = f.debug_struct("StatusRequest");
+      ds.field("id", &self.id());
+      ds.field("name", &self.name());
+      ds.field("configuration_type", &self.configuration_type());
+      match self.configuration_type() {
+        ModeConfiguration::I2CConfig => {
+          if let Some(x) = self.configuration_as_i2_cconfig() {
+            ds.field("configuration", &x)
+          } else {
+            ds.field("configuration", &"InvalidFlatbuffer: Union discriminant does not match value.")
+          }
+        },
+        _ => {
+          let x: Option<()> = None;
+          ds.field("configuration", &x)
+        },
+      };
+      ds.finish()
+  }
+}
+pub enum DataRequestOffset {}
+#[derive(Copy, Clone, PartialEq)]
+
+pub struct DataRequest<'a> {
+  pub _tab: flatbuffers::Table<'a>,
+}
+
+impl<'a> flatbuffers::Follow<'a> for DataRequest<'a> {
+  type Inner = DataRequest<'a>;
+  #[inline]
+  unsafe fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    Self { _tab: flatbuffers::Table::new(buf, loc) }
+  }
+}
+
+impl<'a> DataRequest<'a> {
+  pub const VT_DSTART: flatbuffers::VOffsetT = 4;
+  pub const VT_DSTART_ALT: flatbuffers::VOffsetT = 6;
+  pub const VT_DADDR: flatbuffers::VOffsetT = 8;
+  pub const VT_DDATA: flatbuffers::VOffsetT = 10;
+  pub const VT_DREADBYTES: flatbuffers::VOffsetT = 12;
+  pub const VT_DSTOP: flatbuffers::VOffsetT = 14;
+  pub const VT_DSTOP_ALT: flatbuffers::VOffsetT = 16;
+
+  #[inline]
+  pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
+    DataRequest { _tab: table }
+  }
+  #[allow(unused_mut)]
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
+    args: &'args DataRequestArgs<'args>
+  ) -> flatbuffers::WIPOffset<DataRequest<'bldr>> {
+    let mut builder = DataRequestBuilder::new(_fbb);
+    builder.add_dreadbytes(args.dreadbytes);
+    if let Some(x) = args.ddata { builder.add_ddata(x); }
+    builder.add_dstop_alt(args.dstop_alt);
+    builder.add_dstop(args.dstop);
+    builder.add_daddr(args.daddr);
+    builder.add_dstart_alt(args.dstart_alt);
+    builder.add_dstart(args.dstart);
+    builder.finish()
+  }
+
+
+  #[inline]
+  pub fn dstart(&self) -> bool {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<bool>(DataRequest::VT_DSTART, Some(true)).unwrap()}
+  }
+  #[inline]
+  pub fn dstart_alt(&self) -> bool {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<bool>(DataRequest::VT_DSTART_ALT, Some(false)).unwrap()}
+  }
+  #[inline]
+  pub fn daddr(&self) -> u8 {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<u8>(DataRequest::VT_DADDR, Some(0)).unwrap()}
+  }
+  #[inline]
+  pub fn ddata(&self) -> Option<flatbuffers::Vector<'a, u8>> {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, u8>>>(DataRequest::VT_DDATA, None)}
+  }
+  #[inline]
+  pub fn dreadbytes(&self) -> u32 {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<u32>(DataRequest::VT_DREADBYTES, Some(0)).unwrap()}
+  }
+  #[inline]
+  pub fn dstop(&self) -> bool {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<bool>(DataRequest::VT_DSTOP, Some(true)).unwrap()}
+  }
+  #[inline]
+  pub fn dstop_alt(&self) -> bool {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<bool>(DataRequest::VT_DSTOP_ALT, Some(false)).unwrap()}
+  }
+}
+
+impl flatbuffers::Verifiable for DataRequest<'_> {
+  #[inline]
+  fn run_verifier(
+    v: &mut flatbuffers::Verifier, pos: usize
+  ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
+    use self::flatbuffers::Verifiable;
+    v.visit_table(pos)?
+     .visit_field::<bool>("dstart", Self::VT_DSTART, false)?
+     .visit_field::<bool>("dstart_alt", Self::VT_DSTART_ALT, false)?
+     .visit_field::<u8>("daddr", Self::VT_DADDR, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, u8>>>("ddata", Self::VT_DDATA, false)?
+     .visit_field::<u32>("dreadbytes", Self::VT_DREADBYTES, false)?
+     .visit_field::<bool>("dstop", Self::VT_DSTOP, false)?
+     .visit_field::<bool>("dstop_alt", Self::VT_DSTOP_ALT, false)?
+     .finish();
+    Ok(())
+  }
+}
+pub struct DataRequestArgs<'a> {
+    pub dstart: bool,
+    pub dstart_alt: bool,
+    pub daddr: u8,
+    pub ddata: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, u8>>>,
+    pub dreadbytes: u32,
+    pub dstop: bool,
+    pub dstop_alt: bool,
+}
+impl<'a> Default for DataRequestArgs<'a> {
+  #[inline]
+  fn default() -> Self {
+    DataRequestArgs {
+      dstart: true,
+      dstart_alt: false,
+      daddr: 0,
+      ddata: None,
+      dreadbytes: 0,
+      dstop: true,
+      dstop_alt: false,
+    }
+  }
+}
+
+pub struct DataRequestBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
+  start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
+}
+impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> DataRequestBuilder<'a, 'b, A> {
+  #[inline]
+  pub fn add_dstart(&mut self, dstart: bool) {
+    self.fbb_.push_slot::<bool>(DataRequest::VT_DSTART, dstart, true);
+  }
+  #[inline]
+  pub fn add_dstart_alt(&mut self, dstart_alt: bool) {
+    self.fbb_.push_slot::<bool>(DataRequest::VT_DSTART_ALT, dstart_alt, false);
+  }
+  #[inline]
+  pub fn add_daddr(&mut self, daddr: u8) {
+    self.fbb_.push_slot::<u8>(DataRequest::VT_DADDR, daddr, 0);
+  }
+  #[inline]
+  pub fn add_ddata(&mut self, ddata: flatbuffers::WIPOffset<flatbuffers::Vector<'b , u8>>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(DataRequest::VT_DDATA, ddata);
+  }
+  #[inline]
+  pub fn add_dreadbytes(&mut self, dreadbytes: u32) {
+    self.fbb_.push_slot::<u32>(DataRequest::VT_DREADBYTES, dreadbytes, 0);
+  }
+  #[inline]
+  pub fn add_dstop(&mut self, dstop: bool) {
+    self.fbb_.push_slot::<bool>(DataRequest::VT_DSTOP, dstop, true);
+  }
+  #[inline]
+  pub fn add_dstop_alt(&mut self, dstop_alt: bool) {
+    self.fbb_.push_slot::<bool>(DataRequest::VT_DSTOP_ALT, dstop_alt, false);
+  }
+  #[inline]
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> DataRequestBuilder<'a, 'b, A> {
+    let start = _fbb.start_table();
+    DataRequestBuilder {
+      fbb_: _fbb,
+      start_: start,
+    }
+  }
+  #[inline]
+  pub fn finish(self) -> flatbuffers::WIPOffset<DataRequest<'a>> {
+    let o = self.fbb_.end_table(self.start_);
+    flatbuffers::WIPOffset::new(o.value())
+  }
+}
+
+impl core::fmt::Debug for DataRequest<'_> {
+  fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+    let mut ds = f.debug_struct("DataRequest");
+      ds.field("dstart", &self.dstart());
+      ds.field("dstart_alt", &self.dstart_alt());
+      ds.field("daddr", &self.daddr());
+      ds.field("ddata", &self.ddata());
+      ds.field("dreadbytes", &self.dreadbytes());
+      ds.field("dstop", &self.dstop());
+      ds.field("dstop_alt", &self.dstop_alt());
+      ds.finish()
+  }
+}
+pub enum DataResponseOffset {}
+#[derive(Copy, Clone, PartialEq)]
+
+pub struct DataResponse<'a> {
+  pub _tab: flatbuffers::Table<'a>,
+}
+
+impl<'a> flatbuffers::Follow<'a> for DataResponse<'a> {
+  type Inner = DataResponse<'a>;
+  #[inline]
+  unsafe fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    Self { _tab: flatbuffers::Table::new(buf, loc) }
+  }
+}
+
+impl<'a> DataResponse<'a> {
+  pub const VT_DDATA: flatbuffers::VOffsetT = 4;
+  pub const VT_DERROR_MESSAGE: flatbuffers::VOffsetT = 6;
+
+  #[inline]
+  pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
+    DataResponse { _tab: table }
+  }
+  #[allow(unused_mut)]
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
+    args: &'args DataResponseArgs<'args>
+  ) -> flatbuffers::WIPOffset<DataResponse<'bldr>> {
+    let mut builder = DataResponseBuilder::new(_fbb);
+    if let Some(x) = args.derror_message { builder.add_derror_message(x); }
+    if let Some(x) = args.ddata { builder.add_ddata(x); }
+    builder.finish()
+  }
+
+
+  #[inline]
+  pub fn ddata(&self) -> Option<flatbuffers::Vector<'a, u8>> {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, u8>>>(DataResponse::VT_DDATA, None)}
+  }
+  #[inline]
+  pub fn derror_message(&self) -> Option<&'a str> {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(DataResponse::VT_DERROR_MESSAGE, None)}
+  }
+}
+
+impl flatbuffers::Verifiable for DataResponse<'_> {
+  #[inline]
+  fn run_verifier(
+    v: &mut flatbuffers::Verifier, pos: usize
+  ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
+    use self::flatbuffers::Verifiable;
+    v.visit_table(pos)?
+     .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, u8>>>("ddata", Self::VT_DDATA, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<&str>>("derror_message", Self::VT_DERROR_MESSAGE, false)?
+     .finish();
+    Ok(())
+  }
+}
+pub struct DataResponseArgs<'a> {
+    pub ddata: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, u8>>>,
+    pub derror_message: Option<flatbuffers::WIPOffset<&'a str>>,
+}
+impl<'a> Default for DataResponseArgs<'a> {
+  #[inline]
+  fn default() -> Self {
+    DataResponseArgs {
+      ddata: None,
+      derror_message: None,
+    }
+  }
+}
+
+pub struct DataResponseBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
+  start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
+}
+impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> DataResponseBuilder<'a, 'b, A> {
+  #[inline]
+  pub fn add_ddata(&mut self, ddata: flatbuffers::WIPOffset<flatbuffers::Vector<'b , u8>>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(DataResponse::VT_DDATA, ddata);
+  }
+  #[inline]
+  pub fn add_derror_message(&mut self, derror_message: flatbuffers::WIPOffset<&'b  str>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(DataResponse::VT_DERROR_MESSAGE, derror_message);
+  }
+  #[inline]
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> DataResponseBuilder<'a, 'b, A> {
+    let start = _fbb.start_table();
+    DataResponseBuilder {
+      fbb_: _fbb,
+      start_: start,
+    }
+  }
+  #[inline]
+  pub fn finish(self) -> flatbuffers::WIPOffset<DataResponse<'a>> {
+    let o = self.fbb_.end_table(self.start_);
+    flatbuffers::WIPOffset::new(o.value())
+  }
+}
+
+impl core::fmt::Debug for DataResponse<'_> {
+  fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+    let mut ds = f.debug_struct("DataResponse");
+      ds.field("ddata", &self.ddata());
+      ds.field("derror_message", &self.derror_message());
+      ds.finish()
+  }
+}
+pub enum RequestPacketOffset {}
+#[derive(Copy, Clone, PartialEq)]
+
+pub struct RequestPacket<'a> {
+  pub _tab: flatbuffers::Table<'a>,
+}
+
+impl<'a> flatbuffers::Follow<'a> for RequestPacket<'a> {
+  type Inner = RequestPacket<'a>;
+  #[inline]
+  unsafe fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    Self { _tab: flatbuffers::Table::new(buf, loc) }
+  }
+}
+
+impl<'a> RequestPacket<'a> {
   pub const VT_VERSION_MAJOR: flatbuffers::VOffsetT = 4;
   pub const VT_VERSION_MINOR: flatbuffers::VOffsetT = 6;
-  pub const VT_TYPE_: flatbuffers::VOffsetT = 8;
-  pub const VT_CONTENTS_TYPE: flatbuffers::VOffsetT = 10;
-  pub const VT_CONTENTS: flatbuffers::VOffsetT = 12;
+  pub const VT_CONTENTS_TYPE: flatbuffers::VOffsetT = 8;
+  pub const VT_CONTENTS: flatbuffers::VOffsetT = 10;
 
   #[inline]
   pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
-    Packet { _tab: table }
+    RequestPacket { _tab: table }
   }
   #[allow(unused_mut)]
   pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
     _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
-    args: &'args PacketArgs
-  ) -> flatbuffers::WIPOffset<Packet<'bldr>> {
-    let mut builder = PacketBuilder::new(_fbb);
+    args: &'args RequestPacketArgs
+  ) -> flatbuffers::WIPOffset<RequestPacket<'bldr>> {
+    let mut builder = RequestPacketBuilder::new(_fbb);
     if let Some(x) = args.contents { builder.add_contents(x); }
     builder.add_contents_type(args.contents_type);
-    builder.add_type_(args.type_);
     builder.add_version_minor(args.version_minor);
     builder.add_version_major(args.version_major);
     builder.finish()
@@ -536,45 +1199,38 @@ impl<'a> Packet<'a> {
     // Safety:
     // Created from valid Table for this object
     // which contains a valid value in this slot
-    unsafe { self._tab.get::<u8>(Packet::VT_VERSION_MAJOR, Some(0)).unwrap()}
+    unsafe { self._tab.get::<u8>(RequestPacket::VT_VERSION_MAJOR, Some(0)).unwrap()}
   }
   #[inline]
   pub fn version_minor(&self) -> u8 {
     // Safety:
     // Created from valid Table for this object
     // which contains a valid value in this slot
-    unsafe { self._tab.get::<u8>(Packet::VT_VERSION_MINOR, Some(1)).unwrap()}
+    unsafe { self._tab.get::<u8>(RequestPacket::VT_VERSION_MINOR, Some(1)).unwrap()}
   }
   #[inline]
-  pub fn type_(&self) -> PacketType {
+  pub fn contents_type(&self) -> RequestPacketContents {
     // Safety:
     // Created from valid Table for this object
     // which contains a valid value in this slot
-    unsafe { self._tab.get::<PacketType>(Packet::VT_TYPE_, Some(PacketType::I2CRWRequest)).unwrap()}
-  }
-  #[inline]
-  pub fn contents_type(&self) -> PacketContents {
-    // Safety:
-    // Created from valid Table for this object
-    // which contains a valid value in this slot
-    unsafe { self._tab.get::<PacketContents>(Packet::VT_CONTENTS_TYPE, Some(PacketContents::NONE)).unwrap()}
+    unsafe { self._tab.get::<RequestPacketContents>(RequestPacket::VT_CONTENTS_TYPE, Some(RequestPacketContents::NONE)).unwrap()}
   }
   #[inline]
   pub fn contents(&self) -> Option<flatbuffers::Table<'a>> {
     // Safety:
     // Created from valid Table for this object
     // which contains a valid value in this slot
-    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Table<'a>>>(Packet::VT_CONTENTS, None)}
+    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Table<'a>>>(RequestPacket::VT_CONTENTS, None)}
   }
   #[inline]
   #[allow(non_snake_case)]
-  pub fn contents_as_i2_crwrequest(&self) -> Option<I2CRWRequest<'a>> {
-    if self.contents_type() == PacketContents::I2CRWRequest {
+  pub fn contents_as_status_request(&self) -> Option<StatusRequest<'a>> {
+    if self.contents_type() == RequestPacketContents::StatusRequest {
       self.contents().map(|t| {
        // Safety:
        // Created from a valid Table for this object
        // Which contains a valid union in this slot
-       unsafe { I2CRWRequest::init_from_table(t) }
+       unsafe { StatusRequest::init_from_table(t) }
      })
     } else {
       None
@@ -583,13 +1239,13 @@ impl<'a> Packet<'a> {
 
   #[inline]
   #[allow(non_snake_case)]
-  pub fn contents_as_i2_cresponse(&self) -> Option<I2CResponse<'a>> {
-    if self.contents_type() == PacketContents::I2CResponse {
+  pub fn contents_as_data_request(&self) -> Option<DataRequest<'a>> {
+    if self.contents_type() == RequestPacketContents::DataRequest {
       self.contents().map(|t| {
        // Safety:
        // Created from a valid Table for this object
        // Which contains a valid union in this slot
-       unsafe { I2CResponse::init_from_table(t) }
+       unsafe { DataRequest::init_from_table(t) }
      })
     } else {
       None
@@ -598,7 +1254,7 @@ impl<'a> Packet<'a> {
 
 }
 
-impl flatbuffers::Verifiable for Packet<'_> {
+impl flatbuffers::Verifiable for RequestPacket<'_> {
   #[inline]
   fn run_verifier(
     v: &mut flatbuffers::Verifier, pos: usize
@@ -607,11 +1263,10 @@ impl flatbuffers::Verifiable for Packet<'_> {
     v.visit_table(pos)?
      .visit_field::<u8>("version_major", Self::VT_VERSION_MAJOR, false)?
      .visit_field::<u8>("version_minor", Self::VT_VERSION_MINOR, false)?
-     .visit_field::<PacketType>("type_", Self::VT_TYPE_, false)?
-     .visit_union::<PacketContents, _>("contents_type", Self::VT_CONTENTS_TYPE, "contents", Self::VT_CONTENTS, false, |key, v, pos| {
+     .visit_union::<RequestPacketContents, _>("contents_type", Self::VT_CONTENTS_TYPE, "contents", Self::VT_CONTENTS, false, |key, v, pos| {
         match key {
-          PacketContents::I2CRWRequest => v.verify_union_variant::<flatbuffers::ForwardsUOffset<I2CRWRequest>>("PacketContents::I2CRWRequest", pos),
-          PacketContents::I2CResponse => v.verify_union_variant::<flatbuffers::ForwardsUOffset<I2CResponse>>("PacketContents::I2CResponse", pos),
+          RequestPacketContents::StatusRequest => v.verify_union_variant::<flatbuffers::ForwardsUOffset<StatusRequest>>("RequestPacketContents::StatusRequest", pos),
+          RequestPacketContents::DataRequest => v.verify_union_variant::<flatbuffers::ForwardsUOffset<DataRequest>>("RequestPacketContents::DataRequest", pos),
           _ => Ok(()),
         }
      })?
@@ -619,83 +1274,278 @@ impl flatbuffers::Verifiable for Packet<'_> {
     Ok(())
   }
 }
-pub struct PacketArgs {
+pub struct RequestPacketArgs {
     pub version_major: u8,
     pub version_minor: u8,
-    pub type_: PacketType,
-    pub contents_type: PacketContents,
+    pub contents_type: RequestPacketContents,
     pub contents: Option<flatbuffers::WIPOffset<flatbuffers::UnionWIPOffset>>,
 }
-impl<'a> Default for PacketArgs {
+impl<'a> Default for RequestPacketArgs {
   #[inline]
   fn default() -> Self {
-    PacketArgs {
+    RequestPacketArgs {
       version_major: 0,
       version_minor: 1,
-      type_: PacketType::I2CRWRequest,
-      contents_type: PacketContents::NONE,
+      contents_type: RequestPacketContents::NONE,
       contents: None,
     }
   }
 }
 
-pub struct PacketBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
+pub struct RequestPacketBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
   fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> PacketBuilder<'a, 'b, A> {
+impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> RequestPacketBuilder<'a, 'b, A> {
   #[inline]
   pub fn add_version_major(&mut self, version_major: u8) {
-    self.fbb_.push_slot::<u8>(Packet::VT_VERSION_MAJOR, version_major, 0);
+    self.fbb_.push_slot::<u8>(RequestPacket::VT_VERSION_MAJOR, version_major, 0);
   }
   #[inline]
   pub fn add_version_minor(&mut self, version_minor: u8) {
-    self.fbb_.push_slot::<u8>(Packet::VT_VERSION_MINOR, version_minor, 1);
+    self.fbb_.push_slot::<u8>(RequestPacket::VT_VERSION_MINOR, version_minor, 1);
   }
   #[inline]
-  pub fn add_type_(&mut self, type_: PacketType) {
-    self.fbb_.push_slot::<PacketType>(Packet::VT_TYPE_, type_, PacketType::I2CRWRequest);
-  }
-  #[inline]
-  pub fn add_contents_type(&mut self, contents_type: PacketContents) {
-    self.fbb_.push_slot::<PacketContents>(Packet::VT_CONTENTS_TYPE, contents_type, PacketContents::NONE);
+  pub fn add_contents_type(&mut self, contents_type: RequestPacketContents) {
+    self.fbb_.push_slot::<RequestPacketContents>(RequestPacket::VT_CONTENTS_TYPE, contents_type, RequestPacketContents::NONE);
   }
   #[inline]
   pub fn add_contents(&mut self, contents: flatbuffers::WIPOffset<flatbuffers::UnionWIPOffset>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Packet::VT_CONTENTS, contents);
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(RequestPacket::VT_CONTENTS, contents);
   }
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> PacketBuilder<'a, 'b, A> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> RequestPacketBuilder<'a, 'b, A> {
     let start = _fbb.start_table();
-    PacketBuilder {
+    RequestPacketBuilder {
       fbb_: _fbb,
       start_: start,
     }
   }
   #[inline]
-  pub fn finish(self) -> flatbuffers::WIPOffset<Packet<'a>> {
+  pub fn finish(self) -> flatbuffers::WIPOffset<RequestPacket<'a>> {
     let o = self.fbb_.end_table(self.start_);
     flatbuffers::WIPOffset::new(o.value())
   }
 }
 
-impl core::fmt::Debug for Packet<'_> {
+impl core::fmt::Debug for RequestPacket<'_> {
   fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-    let mut ds = f.debug_struct("Packet");
+    let mut ds = f.debug_struct("RequestPacket");
       ds.field("version_major", &self.version_major());
       ds.field("version_minor", &self.version_minor());
-      ds.field("type_", &self.type_());
       ds.field("contents_type", &self.contents_type());
       match self.contents_type() {
-        PacketContents::I2CRWRequest => {
-          if let Some(x) = self.contents_as_i2_crwrequest() {
+        RequestPacketContents::StatusRequest => {
+          if let Some(x) = self.contents_as_status_request() {
             ds.field("contents", &x)
           } else {
             ds.field("contents", &"InvalidFlatbuffer: Union discriminant does not match value.")
           }
         },
-        PacketContents::I2CResponse => {
-          if let Some(x) = self.contents_as_i2_cresponse() {
+        RequestPacketContents::DataRequest => {
+          if let Some(x) = self.contents_as_data_request() {
+            ds.field("contents", &x)
+          } else {
+            ds.field("contents", &"InvalidFlatbuffer: Union discriminant does not match value.")
+          }
+        },
+        _ => {
+          let x: Option<()> = None;
+          ds.field("contents", &x)
+        },
+      };
+      ds.finish()
+  }
+}
+pub enum ResponsePacketOffset {}
+#[derive(Copy, Clone, PartialEq)]
+
+pub struct ResponsePacket<'a> {
+  pub _tab: flatbuffers::Table<'a>,
+}
+
+impl<'a> flatbuffers::Follow<'a> for ResponsePacket<'a> {
+  type Inner = ResponsePacket<'a>;
+  #[inline]
+  unsafe fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    Self { _tab: flatbuffers::Table::new(buf, loc) }
+  }
+}
+
+impl<'a> ResponsePacket<'a> {
+  pub const VT_VERSION_MAJOR: flatbuffers::VOffsetT = 4;
+  pub const VT_VERSION_MINOR: flatbuffers::VOffsetT = 6;
+  pub const VT_CONTENTS_TYPE: flatbuffers::VOffsetT = 8;
+  pub const VT_CONTENTS: flatbuffers::VOffsetT = 10;
+
+  #[inline]
+  pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
+    ResponsePacket { _tab: table }
+  }
+  #[allow(unused_mut)]
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
+    args: &'args ResponsePacketArgs
+  ) -> flatbuffers::WIPOffset<ResponsePacket<'bldr>> {
+    let mut builder = ResponsePacketBuilder::new(_fbb);
+    if let Some(x) = args.contents { builder.add_contents(x); }
+    builder.add_contents_type(args.contents_type);
+    builder.add_version_minor(args.version_minor);
+    builder.add_version_major(args.version_major);
+    builder.finish()
+  }
+
+
+  #[inline]
+  pub fn version_major(&self) -> u8 {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<u8>(ResponsePacket::VT_VERSION_MAJOR, Some(0)).unwrap()}
+  }
+  #[inline]
+  pub fn version_minor(&self) -> u8 {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<u8>(ResponsePacket::VT_VERSION_MINOR, Some(1)).unwrap()}
+  }
+  #[inline]
+  pub fn contents_type(&self) -> ResponsePacketContents {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<ResponsePacketContents>(ResponsePacket::VT_CONTENTS_TYPE, Some(ResponsePacketContents::NONE)).unwrap()}
+  }
+  #[inline]
+  pub fn contents(&self) -> Option<flatbuffers::Table<'a>> {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Table<'a>>>(ResponsePacket::VT_CONTENTS, None)}
+  }
+  #[inline]
+  #[allow(non_snake_case)]
+  pub fn contents_as_status_response(&self) -> Option<StatusResponse<'a>> {
+    if self.contents_type() == ResponsePacketContents::StatusResponse {
+      self.contents().map(|t| {
+       // Safety:
+       // Created from a valid Table for this object
+       // Which contains a valid union in this slot
+       unsafe { StatusResponse::init_from_table(t) }
+     })
+    } else {
+      None
+    }
+  }
+
+  #[inline]
+  #[allow(non_snake_case)]
+  pub fn contents_as_data_response(&self) -> Option<DataResponse<'a>> {
+    if self.contents_type() == ResponsePacketContents::DataResponse {
+      self.contents().map(|t| {
+       // Safety:
+       // Created from a valid Table for this object
+       // Which contains a valid union in this slot
+       unsafe { DataResponse::init_from_table(t) }
+     })
+    } else {
+      None
+    }
+  }
+
+}
+
+impl flatbuffers::Verifiable for ResponsePacket<'_> {
+  #[inline]
+  fn run_verifier(
+    v: &mut flatbuffers::Verifier, pos: usize
+  ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
+    use self::flatbuffers::Verifiable;
+    v.visit_table(pos)?
+     .visit_field::<u8>("version_major", Self::VT_VERSION_MAJOR, false)?
+     .visit_field::<u8>("version_minor", Self::VT_VERSION_MINOR, false)?
+     .visit_union::<ResponsePacketContents, _>("contents_type", Self::VT_CONTENTS_TYPE, "contents", Self::VT_CONTENTS, false, |key, v, pos| {
+        match key {
+          ResponsePacketContents::StatusResponse => v.verify_union_variant::<flatbuffers::ForwardsUOffset<StatusResponse>>("ResponsePacketContents::StatusResponse", pos),
+          ResponsePacketContents::DataResponse => v.verify_union_variant::<flatbuffers::ForwardsUOffset<DataResponse>>("ResponsePacketContents::DataResponse", pos),
+          _ => Ok(()),
+        }
+     })?
+     .finish();
+    Ok(())
+  }
+}
+pub struct ResponsePacketArgs {
+    pub version_major: u8,
+    pub version_minor: u8,
+    pub contents_type: ResponsePacketContents,
+    pub contents: Option<flatbuffers::WIPOffset<flatbuffers::UnionWIPOffset>>,
+}
+impl<'a> Default for ResponsePacketArgs {
+  #[inline]
+  fn default() -> Self {
+    ResponsePacketArgs {
+      version_major: 0,
+      version_minor: 1,
+      contents_type: ResponsePacketContents::NONE,
+      contents: None,
+    }
+  }
+}
+
+pub struct ResponsePacketBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
+  start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
+}
+impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> ResponsePacketBuilder<'a, 'b, A> {
+  #[inline]
+  pub fn add_version_major(&mut self, version_major: u8) {
+    self.fbb_.push_slot::<u8>(ResponsePacket::VT_VERSION_MAJOR, version_major, 0);
+  }
+  #[inline]
+  pub fn add_version_minor(&mut self, version_minor: u8) {
+    self.fbb_.push_slot::<u8>(ResponsePacket::VT_VERSION_MINOR, version_minor, 1);
+  }
+  #[inline]
+  pub fn add_contents_type(&mut self, contents_type: ResponsePacketContents) {
+    self.fbb_.push_slot::<ResponsePacketContents>(ResponsePacket::VT_CONTENTS_TYPE, contents_type, ResponsePacketContents::NONE);
+  }
+  #[inline]
+  pub fn add_contents(&mut self, contents: flatbuffers::WIPOffset<flatbuffers::UnionWIPOffset>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(ResponsePacket::VT_CONTENTS, contents);
+  }
+  #[inline]
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> ResponsePacketBuilder<'a, 'b, A> {
+    let start = _fbb.start_table();
+    ResponsePacketBuilder {
+      fbb_: _fbb,
+      start_: start,
+    }
+  }
+  #[inline]
+  pub fn finish(self) -> flatbuffers::WIPOffset<ResponsePacket<'a>> {
+    let o = self.fbb_.end_table(self.start_);
+    flatbuffers::WIPOffset::new(o.value())
+  }
+}
+
+impl core::fmt::Debug for ResponsePacket<'_> {
+  fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+    let mut ds = f.debug_struct("ResponsePacket");
+      ds.field("version_major", &self.version_major());
+      ds.field("version_minor", &self.version_minor());
+      ds.field("contents_type", &self.contents_type());
+      match self.contents_type() {
+        ResponsePacketContents::StatusResponse => {
+          if let Some(x) = self.contents_as_status_response() {
+            ds.field("contents", &x)
+          } else {
+            ds.field("contents", &"InvalidFlatbuffer: Union discriminant does not match value.")
+          }
+        },
+        ResponsePacketContents::DataResponse => {
+          if let Some(x) = self.contents_as_data_response() {
             ds.field("contents", &x)
           } else {
             ds.field("contents", &"InvalidFlatbuffer: Union discriminant does not match value.")
@@ -710,75 +1560,75 @@ impl core::fmt::Debug for Packet<'_> {
   }
 }
 #[inline]
-/// Verifies that a buffer of bytes contains a `Packet`
+/// Verifies that a buffer of bytes contains a `ResponsePacket`
 /// and returns it.
 /// Note that verification is still experimental and may not
 /// catch every error, or be maximally performant. For the
 /// previous, unchecked, behavior use
-/// `root_as_packet_unchecked`.
-pub fn root_as_packet(buf: &[u8]) -> Result<Packet, flatbuffers::InvalidFlatbuffer> {
-  flatbuffers::root::<Packet>(buf)
+/// `root_as_response_packet_unchecked`.
+pub fn root_as_response_packet(buf: &[u8]) -> Result<ResponsePacket, flatbuffers::InvalidFlatbuffer> {
+  flatbuffers::root::<ResponsePacket>(buf)
 }
 #[inline]
 /// Verifies that a buffer of bytes contains a size prefixed
-/// `Packet` and returns it.
+/// `ResponsePacket` and returns it.
 /// Note that verification is still experimental and may not
 /// catch every error, or be maximally performant. For the
 /// previous, unchecked, behavior use
-/// `size_prefixed_root_as_packet_unchecked`.
-pub fn size_prefixed_root_as_packet(buf: &[u8]) -> Result<Packet, flatbuffers::InvalidFlatbuffer> {
-  flatbuffers::size_prefixed_root::<Packet>(buf)
+/// `size_prefixed_root_as_response_packet_unchecked`.
+pub fn size_prefixed_root_as_response_packet(buf: &[u8]) -> Result<ResponsePacket, flatbuffers::InvalidFlatbuffer> {
+  flatbuffers::size_prefixed_root::<ResponsePacket>(buf)
 }
 #[inline]
 /// Verifies, with the given options, that a buffer of bytes
-/// contains a `Packet` and returns it.
+/// contains a `ResponsePacket` and returns it.
 /// Note that verification is still experimental and may not
 /// catch every error, or be maximally performant. For the
 /// previous, unchecked, behavior use
-/// `root_as_packet_unchecked`.
-pub fn root_as_packet_with_opts<'b, 'o>(
+/// `root_as_response_packet_unchecked`.
+pub fn root_as_response_packet_with_opts<'b, 'o>(
   opts: &'o flatbuffers::VerifierOptions,
   buf: &'b [u8],
-) -> Result<Packet<'b>, flatbuffers::InvalidFlatbuffer> {
-  flatbuffers::root_with_opts::<Packet<'b>>(opts, buf)
+) -> Result<ResponsePacket<'b>, flatbuffers::InvalidFlatbuffer> {
+  flatbuffers::root_with_opts::<ResponsePacket<'b>>(opts, buf)
 }
 #[inline]
 /// Verifies, with the given verifier options, that a buffer of
-/// bytes contains a size prefixed `Packet` and returns
+/// bytes contains a size prefixed `ResponsePacket` and returns
 /// it. Note that verification is still experimental and may not
 /// catch every error, or be maximally performant. For the
 /// previous, unchecked, behavior use
-/// `root_as_packet_unchecked`.
-pub fn size_prefixed_root_as_packet_with_opts<'b, 'o>(
+/// `root_as_response_packet_unchecked`.
+pub fn size_prefixed_root_as_response_packet_with_opts<'b, 'o>(
   opts: &'o flatbuffers::VerifierOptions,
   buf: &'b [u8],
-) -> Result<Packet<'b>, flatbuffers::InvalidFlatbuffer> {
-  flatbuffers::size_prefixed_root_with_opts::<Packet<'b>>(opts, buf)
+) -> Result<ResponsePacket<'b>, flatbuffers::InvalidFlatbuffer> {
+  flatbuffers::size_prefixed_root_with_opts::<ResponsePacket<'b>>(opts, buf)
 }
 #[inline]
-/// Assumes, without verification, that a buffer of bytes contains a Packet and returns it.
+/// Assumes, without verification, that a buffer of bytes contains a ResponsePacket and returns it.
 /// # Safety
-/// Callers must trust the given bytes do indeed contain a valid `Packet`.
-pub unsafe fn root_as_packet_unchecked(buf: &[u8]) -> Packet {
-  flatbuffers::root_unchecked::<Packet>(buf)
+/// Callers must trust the given bytes do indeed contain a valid `ResponsePacket`.
+pub unsafe fn root_as_response_packet_unchecked(buf: &[u8]) -> ResponsePacket {
+  flatbuffers::root_unchecked::<ResponsePacket>(buf)
 }
 #[inline]
-/// Assumes, without verification, that a buffer of bytes contains a size prefixed Packet and returns it.
+/// Assumes, without verification, that a buffer of bytes contains a size prefixed ResponsePacket and returns it.
 /// # Safety
-/// Callers must trust the given bytes do indeed contain a valid size prefixed `Packet`.
-pub unsafe fn size_prefixed_root_as_packet_unchecked(buf: &[u8]) -> Packet {
-  flatbuffers::size_prefixed_root_unchecked::<Packet>(buf)
+/// Callers must trust the given bytes do indeed contain a valid size prefixed `ResponsePacket`.
+pub unsafe fn size_prefixed_root_as_response_packet_unchecked(buf: &[u8]) -> ResponsePacket {
+  flatbuffers::size_prefixed_root_unchecked::<ResponsePacket>(buf)
 }
 #[inline]
-pub fn finish_packet_buffer<'a, 'b, A: flatbuffers::Allocator + 'a>(
+pub fn finish_response_packet_buffer<'a, 'b, A: flatbuffers::Allocator + 'a>(
     fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
-    root: flatbuffers::WIPOffset<Packet<'a>>) {
+    root: flatbuffers::WIPOffset<ResponsePacket<'a>>) {
   fbb.finish(root, None);
 }
 
 #[inline]
-pub fn finish_size_prefixed_packet_buffer<'a, 'b, A: flatbuffers::Allocator + 'a>(fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>, root: flatbuffers::WIPOffset<Packet<'a>>) {
+pub fn finish_size_prefixed_response_packet_buffer<'a, 'b, A: flatbuffers::Allocator + 'a>(fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>, root: flatbuffers::WIPOffset<ResponsePacket<'a>>) {
   fbb.finish_size_prefixed(root, None);
 }
-}  // pub mod BPIO2
+}  // pub mod bpio
 
