@@ -1,0 +1,5 @@
+- Sending length and no data should time out.
+- I2C reads too fast for my test device. Requires D r:X in the bus syntax.
+    - Clock stretching seems to work in the terminal, but _not_ via BPIO.
+- I2C initialisation appears like a Start condition.
+- I2C: write-reads with a requested read larger than 540 bytes cause a crash.
