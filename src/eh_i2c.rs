@@ -8,6 +8,21 @@ use crate::{
     BusPirate, Request,
 };
 
+macro_rules! create_write_vector {
+    ($builder:ident, $address:expr) => {
+        $builder.create_vector(&[$address])
+    };
+    ($builder:ident, $address:expr, $data:ident) => {{
+        $builder.start_vector::<u8>($data.len() + 1);
+        // Bytes have to be added in reverse order.
+        for byte in $data.iter().rev() {
+            $builder.push(*byte);
+        }
+        $builder.push($address);
+        $builder.end_vector::<u8>($data.len() + 1)
+    }};
+}
+
 fn i2c_read_address(address: u8) -> u8 {
     (address << 1) + 1
 }
@@ -59,7 +74,7 @@ impl I2c for BusPirate {
                     };
 
                     // Read address in the write buffer
-                    let write_data = builder.create_vector(&[i2c_read_address(address)]);
+                    let write_data = create_write_vector!(builder, i2c_read_address(address));
 
                     let mut i2c_req = bpio::DataRequestBuilder::new(&mut builder);
                     i2c_req.add_start_main(needs_start(previous_operation, operation));
@@ -72,12 +87,8 @@ impl I2c for BusPirate {
                 Operation::Write(bytes_to_write) => {
                     // Address + data in the write buffer
                     // NOTE: These have to be added in *REVERSE* order.
-                    builder.start_vector::<u8>(1 + bytes_to_write.len());
-                    for byte in bytes_to_write.iter().rev() {
-                        builder.push(*byte);
-                    }
-                    builder.push(i2c_write_address(address));
-                    let write_data = builder.end_vector(1 + bytes_to_write.len());
+                    let write_data =
+                        create_write_vector!(builder, i2c_write_address(address), bytes_to_write);
 
                     let mut i2c_req = bpio::DataRequestBuilder::new(&mut builder);
                     i2c_req.add_start_main(needs_start(previous_operation, operation));
@@ -149,12 +160,7 @@ impl I2c for BusPirate {
         // Issuing the configuration request on each transaction is slow.
         self.enter_i2c_mode(&mut builder)?;
 
-        builder.start_vector::<u8>(write.len() + 1);
-        for byte in write.iter().rev() {
-            builder.push(*byte);
-        }
-        builder.push(i2c_write_address(address));
-        let write_vector = builder.end_vector(write.len() + 1);
+        let write_vector = create_write_vector!(builder, i2c_write_address(address), write);
 
         let mut data_request = bpio::DataRequestBuilder::new(&mut builder);
         data_request.add_start_main(true);
@@ -181,6 +187,82 @@ impl I2c for BusPirate {
             return Err(Error::Other);
         }
 
+        Ok(())
+    }
+
+    fn read(&mut self, address: u8, read: &mut [u8]) -> Result<(), Self::Error> {
+        let mut builder = flatbuffers::FlatBufferBuilder::with_capacity(512);
+
+        // TODO: Make this conditional on some stored state.
+        // Issuing the configuration request on each transaction is slow.
+        self.enter_i2c_mode(&mut builder)?;
+
+        let address_vector = create_write_vector!(builder, i2c_read_address(address));
+
+        let mut data_request = bpio::DataRequestBuilder::new(&mut builder);
+        data_request.add_start_main(true);
+        data_request.add_stop_main(true);
+        data_request.add_data_write(address_vector);
+        data_request.add_bytes_read(read.len() as u16);
+        let data_request = data_request.finish();
+
+        let mut packet = RequestPacketBuilder::new(&mut builder);
+        packet.add_contents_type(bpio::RequestPacketContents::DataRequest);
+        packet.add_contents(data_request.as_union_value());
+        let packet = packet.finish();
+
+        builder.finish_minimal(packet);
+
+        println!(
+            "{:#?}",
+            flatbuffers::root::<bpio::RequestPacket>(builder.finished_data()).unwrap()
+        );
+
+        let response_bytes = self.transfer(Request(builder.finished_data()))?;
+        let response = bpio::root_as_response_packet(&response_bytes.0)?;
+        // TODO: Handle error message
+        // Also figure out how these properties interact. Is data always Some
+        // if data_response is Some?
+        if let Some(data_response) = response.contents_as_data_response() {
+            if let Some(data) = data_response.data_read() {
+                read.copy_from_slice(data.bytes());
+                return Ok(());
+            }
+        }
+        // TODO: Handle error properly.
+        eprintln!("Couldn't get data response from contents.");
+        Err(Error::Other)
+    }
+
+    fn write(&mut self, address: u8, write: &[u8]) -> Result<(), Self::Error> {
+        let mut builder = flatbuffers::FlatBufferBuilder::with_capacity(512);
+
+        // TODO: Make this conditional on some stored state.
+        // Issuing the configuration request on each transaction is slow.
+        self.enter_i2c_mode(&mut builder)?;
+
+        let write_vector = create_write_vector!(builder, i2c_write_address(address), write);
+
+        let mut data_request = bpio::DataRequestBuilder::new(&mut builder);
+        data_request.add_start_main(true);
+        data_request.add_stop_main(true);
+        data_request.add_data_write(write_vector);
+        let data_request = data_request.finish();
+
+        let mut packet = RequestPacketBuilder::new(&mut builder);
+        packet.add_contents_type(bpio::RequestPacketContents::DataRequest);
+        packet.add_contents(data_request.as_union_value());
+        let packet = packet.finish();
+
+        builder.finish_minimal(packet);
+        println!(
+            "{:#?}",
+            flatbuffers::root::<bpio::RequestPacket>(builder.finished_data()).unwrap()
+        );
+
+        let response_bytes = self.transfer(Request(builder.finished_data()))?;
+        let _response = bpio::root_as_response_packet(&response_bytes.0)?;
+        // TODO: Handle error message
         Ok(())
     }
 }
