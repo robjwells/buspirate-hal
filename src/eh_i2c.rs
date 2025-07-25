@@ -2,17 +2,13 @@ use std::mem::{discriminant, Discriminant};
 
 use embedded_hal::i2c::{ErrorType, I2c, Operation};
 
-use crate::{
-    bpio::{self, RequestPacketBuilder},
-    error::Error,
-    BusPirate, Request,
-};
+use crate::{bpio, error::Error, BusPirate, Request};
 
 macro_rules! create_write_vector {
     ($builder:ident, $address:expr) => {
         $builder.create_vector(&[$address])
     };
-    ($builder:ident, $address:expr, $data:ident) => {{
+    ($builder:ident, $address:expr, data = $data:ident ) => {{
         $builder.start_vector::<u8>($data.len() + 1);
         // Bytes have to be added in reverse order.
         for byte in $data.iter().rev() {
@@ -20,6 +16,43 @@ macro_rules! create_write_vector {
         }
         $builder.push($address);
         $builder.end_vector::<u8>($data.len() + 1)
+    }};
+}
+
+/// Issue a single I2C transaction, with start and stop conditions
+macro_rules! single_data_request {
+    (
+        $builder:ident,
+        addr = $addr:expr
+        $(, write = $write:ident )?
+        $(, read = $read:ident )?
+        $( , )?                     // Optional trailing comma
+    ) => {{
+        // Create a write vector if either the addres or write data were supplied.
+        let wv = create_write_vector!($builder, $addr  $(, data = $write )? );
+
+        let mut req = crate::bpio::DataRequestBuilder::new(&mut $builder);
+        req.add_start_main(true);
+        req.add_stop_main(true);
+        // Always a write vector, even if it's just the address.
+        req.add_data_write(wv);
+        $( req.add_bytes_read($read.len() as u16); )?
+
+        req.finish()
+    }};
+}
+
+macro_rules! build_data_request_packet {
+    ($builder:ident, $dr:expr) => {{
+        // Result of data_request!(...)
+        let data_req = $dr;
+
+        let mut packet = crate::bpio::RequestPacketBuilder::new(&mut $builder);
+        packet.add_contents_type(crate::bpio::RequestPacketContents::DataRequest);
+        packet.add_contents(data_req.as_union_value());
+        let packet = packet.finish();
+
+        $builder.finish_minimal(packet);
     }};
 }
 
@@ -73,7 +106,7 @@ impl I2c for BusPirate {
                         return Err(Error::Other);
                     };
 
-                    // Read address in the write buffer
+                    // TODO: address shouldn't be reissued with adjacent operations.
                     let write_data = create_write_vector!(builder, i2c_read_address(address));
 
                     let mut i2c_req = bpio::DataRequestBuilder::new(&mut builder);
@@ -85,10 +118,12 @@ impl I2c for BusPirate {
                     i2c_req.finish()
                 }
                 Operation::Write(bytes_to_write) => {
-                    // Address + data in the write buffer
-                    // NOTE: These have to be added in *REVERSE* order.
-                    let write_data =
-                        create_write_vector!(builder, i2c_write_address(address), bytes_to_write);
+                    // TODO: address shouldn't be reissued with adjacent operations.
+                    let write_data = create_write_vector!(
+                        builder,
+                        i2c_write_address(address),
+                        data = bytes_to_write
+                    );
 
                     let mut i2c_req = bpio::DataRequestBuilder::new(&mut builder);
                     i2c_req.add_start_main(needs_start(previous_operation, operation));
@@ -99,12 +134,8 @@ impl I2c for BusPirate {
                 }
             };
 
-            let mut packet = bpio::RequestPacketBuilder::new(&mut builder);
-            packet.add_contents_type(bpio::RequestPacketContents::DataRequest);
-            packet.add_contents(i2c_req.as_union_value());
-            let packet = packet.finish();
+            build_data_request_packet!(builder, i2c_req);
 
-            builder.finish(packet, None);
             eprintln!(
                 "{:#?}",
                 flatbuffers::root::<bpio::RequestPacket>(builder.finished_data()).unwrap()
@@ -160,21 +191,16 @@ impl I2c for BusPirate {
         // Issuing the configuration request on each transaction is slow.
         self.enter_i2c_mode(&mut builder)?;
 
-        let write_vector = create_write_vector!(builder, i2c_write_address(address), write);
+        build_data_request_packet!(
+            builder,
+            single_data_request!(
+                builder,
+                addr = i2c_write_address(address),
+                write = write,
+                read = read,
+            )
+        );
 
-        let mut data_request = bpio::DataRequestBuilder::new(&mut builder);
-        data_request.add_start_main(true);
-        data_request.add_stop_main(true);
-        data_request.add_data_write(write_vector);
-        data_request.add_bytes_read(read.len() as u16);
-        let data_request = data_request.finish();
-
-        let mut packet = RequestPacketBuilder::new(&mut builder);
-        packet.add_contents_type(bpio::RequestPacketContents::DataRequest);
-        packet.add_contents(data_request.as_union_value());
-        let packet = packet.finish();
-
-        builder.finish_minimal(packet);
         let response_bytes = self.transfer(Request(builder.finished_data()))?;
         let response = bpio::root_as_response_packet(&response_bytes.0)?;
         // TODO: Handle error message
@@ -197,21 +223,10 @@ impl I2c for BusPirate {
         // Issuing the configuration request on each transaction is slow.
         self.enter_i2c_mode(&mut builder)?;
 
-        let address_vector = create_write_vector!(builder, i2c_read_address(address));
-
-        let mut data_request = bpio::DataRequestBuilder::new(&mut builder);
-        data_request.add_start_main(true);
-        data_request.add_stop_main(true);
-        data_request.add_data_write(address_vector);
-        data_request.add_bytes_read(read.len() as u16);
-        let data_request = data_request.finish();
-
-        let mut packet = RequestPacketBuilder::new(&mut builder);
-        packet.add_contents_type(bpio::RequestPacketContents::DataRequest);
-        packet.add_contents(data_request.as_union_value());
-        let packet = packet.finish();
-
-        builder.finish_minimal(packet);
+        build_data_request_packet!(
+            builder,
+            single_data_request!(builder, addr = i2c_read_address(address), read = read)
+        );
 
         println!(
             "{:#?}",
@@ -241,20 +256,11 @@ impl I2c for BusPirate {
         // Issuing the configuration request on each transaction is slow.
         self.enter_i2c_mode(&mut builder)?;
 
-        let write_vector = create_write_vector!(builder, i2c_write_address(address), write);
+        build_data_request_packet!(
+            builder,
+            single_data_request!(builder, addr = i2c_write_address(address), write = write)
+        );
 
-        let mut data_request = bpio::DataRequestBuilder::new(&mut builder);
-        data_request.add_start_main(true);
-        data_request.add_stop_main(true);
-        data_request.add_data_write(write_vector);
-        let data_request = data_request.finish();
-
-        let mut packet = RequestPacketBuilder::new(&mut builder);
-        packet.add_contents_type(bpio::RequestPacketContents::DataRequest);
-        packet.add_contents(data_request.as_union_value());
-        let packet = packet.finish();
-
-        builder.finish_minimal(packet);
         println!(
             "{:#?}",
             flatbuffers::root::<bpio::RequestPacket>(builder.finished_data()).unwrap()
