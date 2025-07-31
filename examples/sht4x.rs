@@ -1,5 +1,4 @@
 //! Read a SHT4x sensor with an embedded-hal driver.
-use buspirate_hal::BusPirate;
 
 use embedded_hal_mock::eh1::delay::StdSleep;
 use sht4x_rjw::blocking::SHT4x;
@@ -10,7 +9,7 @@ fn main() -> anyhow::Result<()> {
         std::process::exit(1)
     };
 
-    let bp = BusPirate::open(&path)?;
+    let bp = buspirate_hal::open(&path)?.enter_i2c_mode(400_000, false)?;
     let mut sht40 = SHT4x::new(bp, Default::default());
     let reading = sht40.measure(StdSleep::new())?;
     println!("{:.1} °C", reading.celsius());

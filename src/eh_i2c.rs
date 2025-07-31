@@ -2,7 +2,7 @@ use std::mem::{discriminant, Discriminant};
 
 use embedded_hal::i2c::{ErrorType, I2c, Operation};
 
-use crate::{bpio, error::Error, BusPirate, Request};
+use crate::{bpio, error::Error, modes, BusPirate, Request};
 
 macro_rules! create_write_vector {
     ($builder:ident, $address:expr) => {
@@ -64,11 +64,11 @@ fn i2c_write_address(address: u8) -> u8 {
     address << 1
 }
 
-impl ErrorType for BusPirate {
+impl ErrorType for BusPirate<modes::I2c> {
     type Error = Error;
 }
 
-impl I2c for BusPirate {
+impl I2c for BusPirate<modes::I2c> {
     fn transaction(
         &mut self,
         address: u8,
@@ -78,9 +78,6 @@ impl I2c for BusPirate {
 
         // TODO: Choose a sensible capacity for the flatbuffer builder.
         let mut builder = flatbuffers::FlatBufferBuilder::with_capacity(1024);
-
-        // Put the Bus Pirate into I2C mode.
-        self.enter_i2c_mode(&mut builder)?;
 
         type PreviousOp<'a> = Option<Discriminant<Operation<'a>>>;
         // Track the type (Read/Write) of the previous I2C operation to allow
@@ -144,12 +141,12 @@ impl I2c for BusPirate {
             // Update the previous operation for Repeated-Start purposes.
             previous_operation = Some(discriminant(operation));
 
-            let Ok(response) = self.transfer(Request(builder.finished_data())) else {
+            let Ok(response) = self.transfer(Request::encode(builder.finished_data())) else {
                 // Does this also need I2C transaction cleanup (issue Stop)?
                 todo!("Handle transfer error.");
             };
 
-            let Ok(packet) = bpio::root_as_response_packet(&response.0) else {
+            let Ok(packet) = bpio::root_as_response_packet(&response.cobs_decoded) else {
                 todo!("Handle errors from flatbuffer");
             };
             eprintln!("{packet:#?}");
@@ -187,10 +184,6 @@ impl I2c for BusPirate {
     ) -> Result<(), Self::Error> {
         let mut builder = flatbuffers::FlatBufferBuilder::with_capacity(512);
 
-        // TODO: Make this conditional on some stored state.
-        // Issuing the configuration request on each transaction is slow.
-        self.enter_i2c_mode(&mut builder)?;
-
         build_data_request_packet!(
             builder,
             single_data_request!(
@@ -201,8 +194,8 @@ impl I2c for BusPirate {
             )
         );
 
-        let response_bytes = self.transfer(Request(builder.finished_data()))?;
-        let response = bpio::root_as_response_packet(&response_bytes.0)?;
+        let response = self.transfer(Request::encode(builder.finished_data()))?;
+        let response = bpio::root_as_response_packet(&response.cobs_decoded)?;
         // TODO: Handle error message
         if let Some(data_response) = response.contents_as_data_response() {
             if let Some(data) = data_response.data_read() {
@@ -219,10 +212,6 @@ impl I2c for BusPirate {
     fn read(&mut self, address: u8, read: &mut [u8]) -> Result<(), Self::Error> {
         let mut builder = flatbuffers::FlatBufferBuilder::with_capacity(512);
 
-        // TODO: Make this conditional on some stored state.
-        // Issuing the configuration request on each transaction is slow.
-        self.enter_i2c_mode(&mut builder)?;
-
         build_data_request_packet!(
             builder,
             single_data_request!(builder, addr = i2c_read_address(address), read = read)
@@ -233,8 +222,8 @@ impl I2c for BusPirate {
             flatbuffers::root::<bpio::RequestPacket>(builder.finished_data()).unwrap()
         );
 
-        let response_bytes = self.transfer(Request(builder.finished_data()))?;
-        let response = bpio::root_as_response_packet(&response_bytes.0)?;
+        let response = self.transfer(Request::encode(builder.finished_data()))?;
+        let response = bpio::root_as_response_packet(&response.cobs_decoded)?;
         // TODO: Handle error message
         // Also figure out how these properties interact. Is data always Some
         // if data_response is Some?
@@ -252,10 +241,6 @@ impl I2c for BusPirate {
     fn write(&mut self, address: u8, write: &[u8]) -> Result<(), Self::Error> {
         let mut builder = flatbuffers::FlatBufferBuilder::with_capacity(512);
 
-        // TODO: Make this conditional on some stored state.
-        // Issuing the configuration request on each transaction is slow.
-        self.enter_i2c_mode(&mut builder)?;
-
         build_data_request_packet!(
             builder,
             single_data_request!(builder, addr = i2c_write_address(address), write = write)
@@ -266,8 +251,8 @@ impl I2c for BusPirate {
             flatbuffers::root::<bpio::RequestPacket>(builder.finished_data()).unwrap()
         );
 
-        let response_bytes = self.transfer(Request(builder.finished_data()))?;
-        let _response = bpio::root_as_response_packet(&response_bytes.0)?;
+        let response_bytes = self.transfer(Request::encode(builder.finished_data()))?;
+        let _response = bpio::root_as_response_packet(&response_bytes.cobs_decoded)?;
         // TODO: Handle error message
         Ok(())
     }

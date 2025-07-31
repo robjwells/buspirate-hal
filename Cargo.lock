@@ -31,6 +31,7 @@ name = "buspirate-hal"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "cobs",
  "embedded-hal 1.0.0",
  "embedded-hal-mock",
  "flatbuffers",
@@ -43,6 +44,15 @@ name = "cfg-if"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9555578bc9e57714c812a1f84e4fc5b4d21fcb063490c624de019f7464c91268"
+
+[[package]]
+name = "cobs"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fea6d1b751c55bd9c0dda7d4ff752074e98f4765ae969664648bd193bb326d15"
+dependencies = [
+ "thiserror",
+]
 
 [[package]]
 name = "core-foundation"

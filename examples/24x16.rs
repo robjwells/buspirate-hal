@@ -1,7 +1,6 @@
 //! Read a 24x16 EEPROM.
 #![allow(clippy::unusual_byte_groupings)]
 
-use buspirate_hal::BusPirate;
 use embedded_hal::i2c::I2c;
 
 const PAGES: usize = 8;
@@ -13,7 +12,7 @@ fn main() -> anyhow::Result<()> {
         std::process::exit(1)
     };
 
-    let mut bp = BusPirate::open(&path)?;
+    let mut bp = buspirate_hal::open(&path)?.enter_i2c_mode(400_000, false)?;
     let mut buf = [0u8; PAGE_SIZE * PAGES];
     let address: u8 = 0b1010_000;
 

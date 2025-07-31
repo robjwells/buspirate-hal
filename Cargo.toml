@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"       # 2021 because of the generated code's unsafe parts
 
 [dependencies]
+cobs = "0.4"
 embedded-hal = "1"
 flatbuffers = "25"
 serialport = "4"

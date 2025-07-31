@@ -3,6 +3,8 @@ pub enum Error {
     SerialPort(serialport::Error),
     Io(std::io::Error),
     Flatbuffer(flatbuffers::InvalidFlatbuffer),
+    Cobs(cobs::DecodeError),
+    FlatbufferUnexpectedContents,
     Other,
 }
 
@@ -21,6 +23,12 @@ impl From<flatbuffers::InvalidFlatbuffer> for Error {
 impl From<serialport::Error> for Error {
     fn from(value: serialport::Error) -> Self {
         Self::SerialPort(value)
+    }
+}
+
+impl From<cobs::DecodeError> for Error {
+    fn from(value: cobs::DecodeError) -> Self {
+        Self::Cobs(value)
     }
 }
 
