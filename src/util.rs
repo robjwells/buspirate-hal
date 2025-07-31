@@ -1,8 +1,8 @@
-pub(crate) struct Request {
+pub(crate) struct EncodedRequest {
     pub(crate) cobs_encoded: Vec<u8>,
 }
 
-impl Request {
+impl EncodedRequest {
     pub(crate) fn encode(data: &[u8]) -> Self {
         let mut cobs_encoded = cobs::encode_vec(data);
         // Push terminal.

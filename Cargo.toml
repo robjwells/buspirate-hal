@@ -4,6 +4,8 @@ version = "0.1.0"
 edition = "2021"       # 2021 because of the generated code's unsafe parts
 
 [dependencies]
+bit_field = "0.10"
+bon = "3.6"
 cobs = "0.4"
 embedded-hal = "1"
 flatbuffers = "25"

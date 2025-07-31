@@ -5,6 +5,8 @@ pub enum Error {
     Flatbuffer(flatbuffers::InvalidFlatbuffer),
     Cobs(cobs::DecodeError),
     FlatbufferUnexpectedContents,
+    BpioErrorMessage(String),
+    UnexpectedResponseType(&'static str),
     Other,
 }
 
