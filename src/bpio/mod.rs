@@ -234,88 +234,91 @@ impl IoConfig {
 
 #[derive(Debug, bon::Builder)]
 pub struct ConfigurationRequest<'a> {
-    pub mode: Option<Modes>,
-    pub mode_config: Option<ModeConfiguration>,
-    pub mode_bit_order: Option<BitOrder>,
-    pub psu: Option<PsuConfig>,
-    pub pullup: Option<bool>,
+    mode_bit_order: Option<BitOrder>,
+    psu: Option<PsuConfig>,
+    pullup: Option<bool>,
     // pullx_config: Option<u32> // TODO: learn how this works
-    pub io: Option<IoConfig>,
-    pub led_resume: Option<bool>,
-    pub led_color: Option<&'a [u32]>,
-    pub print_string: Option<&'a str>,
-    pub hardware_bootloader: Option<bool>,
-    pub hardware_reset: Option<bool>,
+    io: Option<IoConfig>,
+    led_resume: Option<bool>,
+    led_color: Option<&'a [u32]>,
+    print_string: Option<&'a str>,
+    hardware_bootloader: Option<bool>,
+    hardware_reset: Option<bool>,
 }
 
-impl<'a> From<ConfigurationRequest<'a>> for EncodedRequest {
-    fn from(request: ConfigurationRequest<'a>) -> Self {
-        let mut builder = FlatBufferBuilder::with_capacity(256);
+impl<'a> ConfigurationRequest<'a> {
+    fn empty() -> Self {
+        Self::builder().build()
+    }
+}
+
+struct FullConfigurationRequest<'a> {
+    cfg: ConfigurationRequest<'a>,
+    mode: Option<(Modes, ModeConfiguration)>,
+}
+
+impl<'a> From<FullConfigurationRequest<'a>> for EncodedRequest {
+    fn from(request: FullConfigurationRequest<'a>) -> Self {
+        let mut fbb = FlatBufferBuilder::with_capacity(256);
+
+        let FullConfigurationRequest { cfg: config, mode } = request;
 
         // Create nested items first to avoid a borrowing conflict with the config builder.
-        let mode = request.mode.map(|m| builder.create_string(m.name()));
-        let mode_config = {
-            // Bus Pirate expects ModeConfiguration if mode is set.
-            match (mode, request.mode_config) {
-                (_, Some(mc)) => Some(mc.apply(&mut builder)),
-                (Some(..), None) => Some(ModeConfiguration::empty().apply(&mut builder)),
-                (None, None) => None,
-            }
-        };
-        let print_string = request.print_string.map(|s| builder.create_string(s));
-        let led_color = request
-            .led_color
-            .map(|colors| builder.create_vector(colors));
+        let mode = mode.map(|(mode, mode_config)| {
+            let mode = fbb.create_string(mode.name());
+            let mode_config = mode_config.apply(&mut fbb);
+            (mode, mode_config)
+        });
+        let print_string = config.print_string.map(|s| fbb.create_string(s));
+        let led_color = config.led_color.map(|colors| fbb.create_vector(colors));
 
-        let mut cfg = generated::ConfigurationRequestBuilder::new(&mut builder);
-        if let Some(mode) = mode {
-            cfg.add_mode(mode);
+        let mut builder = generated::ConfigurationRequestBuilder::new(&mut fbb);
+        if let Some((mode, mode_config)) = mode {
+            builder.add_mode(mode);
+            builder.add_mode_configuration(mode_config);
         }
-        if let Some(mode_configuration) = mode_config {
-            cfg.add_mode_configuration(mode_configuration);
-        }
-        if let Some(bit_order) = request.mode_bit_order {
+        if let Some(bit_order) = config.mode_bit_order {
             match bit_order {
-                BitOrder::Msb => cfg.add_mode_bitorder_msb(true),
-                BitOrder::Lsb => cfg.add_mode_bitorder_lsb(true),
+                BitOrder::Msb => builder.add_mode_bitorder_msb(true),
+                BitOrder::Lsb => builder.add_mode_bitorder_lsb(true),
             };
         }
-        if let Some(psu) = request.psu {
-            psu.apply(&mut cfg);
+        if let Some(psu) = config.psu {
+            psu.apply(&mut builder);
         }
-        if let Some(turn_pullup_on) = request.pullup {
+        if let Some(turn_pullup_on) = config.pullup {
             if turn_pullup_on {
-                cfg.add_pullup_enable(true);
+                builder.add_pullup_enable(true);
             } else {
-                cfg.add_pullup_disable(true);
+                builder.add_pullup_disable(true);
             }
         }
-        if let Some(io_config) = request.io {
-            io_config.apply(&mut cfg);
+        if let Some(io_config) = config.io {
+            io_config.apply(&mut builder);
         }
-        if let Some(led_resume) = request.led_resume {
-            cfg.add_led_resume(led_resume);
+        if let Some(led_resume) = config.led_resume {
+            builder.add_led_resume(led_resume);
         }
         if let Some(led_color) = led_color {
-            cfg.add_led_color(led_color);
+            builder.add_led_color(led_color);
         }
         if let Some(print_string) = print_string {
-            cfg.add_print_string(print_string);
+            builder.add_print_string(print_string);
         }
-        if let Some(hardware_bootloader) = request.hardware_bootloader {
-            cfg.add_hardware_bootloader(hardware_bootloader);
+        if let Some(hardware_bootloader) = config.hardware_bootloader {
+            builder.add_hardware_bootloader(hardware_bootloader);
         }
-        if let Some(hardware_reset) = request.hardware_reset {
-            cfg.add_hardware_reset(hardware_reset);
+        if let Some(hardware_reset) = config.hardware_reset {
+            builder.add_hardware_reset(hardware_reset);
         }
-        let cfg = cfg.finish();
+        let cfg = builder.finish();
 
-        let mut packet = generated::RequestPacketBuilder::new(&mut builder);
+        let mut packet = generated::RequestPacketBuilder::new(&mut fbb);
         packet.add_contents_type(generated::RequestPacketContents::ConfigurationRequest);
         packet.add_contents(cfg.as_union_value());
         let packet = packet.finish();
-        builder.finish_minimal(packet);
-        EncodedRequest::encode(builder.finished_data())
+        fbb.finish_minimal(packet);
+        EncodedRequest::encode(fbb.finished_data())
     }
 }
 
@@ -338,7 +341,7 @@ pub struct ModeConfiguration {
 }
 
 impl ModeConfiguration {
-    fn empty() -> Self {
+    pub fn empty() -> Self {
         Self::builder().build()
     }
 }
@@ -398,7 +401,18 @@ pub(crate) fn send_configuration_request(
     port: impl Read + Write,
     request: ConfigurationRequest,
 ) -> Result<(), Error> {
-    let response_bytes = send(port, request.into())?;
+    send_full_configuration_request(port, request, None)
+}
+
+// TODO: Method to change configuration of current mode, without changing the mode itself(?)
+
+fn send_full_configuration_request(
+    port: impl Read + Write,
+    request: ConfigurationRequest,
+    mode: Option<(Modes, ModeConfiguration)>,
+) -> Result<(), Error> {
+    let full_config = FullConfigurationRequest { cfg: request, mode };
+    let response_bytes = send(port, full_config.into())?;
     let packet = generated::root_as_response_packet(&response_bytes.cobs_decoded)?;
     if let Some(config_response) = packet.contents_as_configuration_response() {
         if let Some(error_message) = config_response.error() {
@@ -418,4 +432,14 @@ pub(crate) fn send_configuration_request(
                 .expect("Variants must have defined names."),
         ))
     }
+}
+
+pub(crate) fn change_mode(
+    port: impl Read + Write,
+    mode: Modes,
+    mode_config: ModeConfiguration,
+    extra_config: Option<ConfigurationRequest<'_>>,
+) -> Result<(), Error> {
+    let request = extra_config.unwrap_or_else(ConfigurationRequest::empty);
+    send_full_configuration_request(port, request, Some((mode, mode_config)))
 }

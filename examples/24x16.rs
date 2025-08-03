@@ -1,6 +1,7 @@
 //! Read a 24x16 EEPROM.
 #![allow(clippy::unusual_byte_groupings)]
 
+use buspirate_hal::{ConfigurationRequest, PsuConfig};
 use embedded_hal::i2c::I2c;
 
 const PAGES: usize = 8;
@@ -12,7 +13,16 @@ fn main() -> anyhow::Result<()> {
         std::process::exit(1)
     };
 
-    let mut bp = buspirate_hal::open(&path)?.enter_i2c_mode(400_000, false)?;
+    let psu_config = PsuConfig::builder()
+        .enable(true)
+        .millivolts(3300)
+        .milliamps(300)
+        .build();
+    let extra_config = ConfigurationRequest::builder()
+        .psu(psu_config)
+        .pullup(true)
+        .build();
+    let mut bp = buspirate_hal::open(&path)?.enter_i2c_mode(400_000, false, Some(extra_config))?;
     let mut buf = [0u8; PAGE_SIZE * PAGES];
     let address: u8 = 0b1010_000;
 

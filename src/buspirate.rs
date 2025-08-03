@@ -4,7 +4,7 @@ use serialport::SerialPort;
 
 use crate::bpio::{self, ConfigurationRequest};
 use crate::modes::{self, ActiveMode, I2c, Modes};
-use crate::{EncodedRequest, Error};
+use crate::{EncodedRequest, Error, ModeConfiguration};
 
 /// HAL wrapper
 pub struct BusPirate<M: ActiveMode> {
@@ -29,10 +29,12 @@ pub fn open(address: &str) -> Result<BusPirate<modes::HiZ>, Error> {
         .timeout(Duration::from_secs(1))
         .open()?;
     // Put the Bus Pirate into high-impedance mode upon opening the serial port.
-    let request = bpio::ConfigurationRequest::builder()
-        .mode(Modes::HiZ)
-        .build();
-    bpio::send_configuration_request(&mut serial_port, request)?;
+    bpio::change_mode(
+        &mut serial_port,
+        Modes::HiZ,
+        ModeConfiguration::empty(),
+        None,
+    )?;
     Ok(BusPirate::<modes::HiZ> {
         _mode: PhantomData,
         serial_port,
@@ -47,31 +49,34 @@ impl<M: ActiveMode> BusPirate<M> {
         bpio::send_data_request(&mut self.serial_port, request.into())
     }
 
-    fn set_mode(&mut self, mode: Modes) -> Result<(), Error> {
-        self.configure(bpio::ConfigurationRequest::builder().mode(mode).build())
-    }
-
     pub fn configure(&mut self, request: ConfigurationRequest) -> Result<(), Error> {
-        // TODO: Remove this footgun somehow.
-        // Perhaps ConfigurationRequest should exclude the mode (and mode config?).
-        if request.mode.is_some() {
-            eprintln!(
-                "WARNING: Use mode-specific methods to change mode, as the \
-                BusPirate struct will be put into an inconsistent state."
-            )
-        }
         bpio::send_configuration_request(&mut self.serial_port, request)
     }
 
+    fn set_mode(
+        &mut self,
+        mode: Modes,
+        mode_config: ModeConfiguration,
+        extra_config: Option<ConfigurationRequest>,
+    ) -> Result<(), Error> {
+        bpio::change_mode(&mut self.serial_port, mode, mode_config, extra_config)
+    }
+
     /// Put the Bus Pirate into I2C mode.
-    #[allow(unused_variables)]
     pub fn enter_i2c_mode(
         mut self,
         speed: u32,
         clock_stretching: bool,
+        extra_config: Option<ConfigurationRequest>,
     ) -> Result<BusPirate<modes::I2c>, crate::error::Error> {
-        // TODO: Set I2C speed and clock-stretching, other configuration.
-        self.set_mode(Modes::I2c)?;
+        self.set_mode(
+            Modes::I2c,
+            ModeConfiguration::builder()
+                .speed(speed)
+                .clock_stretch(clock_stretching)
+                .build(),
+            extra_config,
+        )?;
         Ok(with_mode!(self, I2c))
     }
 }
