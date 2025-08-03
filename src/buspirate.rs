@@ -2,7 +2,7 @@ use std::{marker::PhantomData, time::Duration};
 
 use serialport::SerialPort;
 
-use crate::bpio;
+use crate::bpio::{self, ConfigurationRequest};
 use crate::modes::{self, ActiveMode, I2c, Modes};
 use crate::{EncodedRequest, Error};
 
@@ -29,7 +29,10 @@ pub fn open(address: &str) -> Result<BusPirate<modes::HiZ>, Error> {
         .timeout(Duration::from_secs(1))
         .open()?;
     // Put the Bus Pirate into high-impedance mode upon opening the serial port.
-    bpio::change_mode(&mut serial_port, Modes::HiZ)?;
+    let request = bpio::ConfigurationRequest::builder()
+        .mode(Modes::HiZ)
+        .build();
+    bpio::send_configuration_request(&mut serial_port, request)?;
     Ok(BusPirate::<modes::HiZ> {
         _mode: PhantomData,
         serial_port,
@@ -45,7 +48,19 @@ impl<M: ActiveMode> BusPirate<M> {
     }
 
     fn set_mode(&mut self, mode: Modes) -> Result<(), Error> {
-        bpio::change_mode(&mut self.serial_port, mode)
+        self.configure(bpio::ConfigurationRequest::builder().mode(mode).build())
+    }
+
+    pub fn configure(&mut self, request: ConfigurationRequest) -> Result<(), Error> {
+        // TODO: Remove this footgun somehow.
+        // Perhaps ConfigurationRequest should exclude the mode (and mode config?).
+        if request.mode.is_some() {
+            eprintln!(
+                "WARNING: Use mode-specific methods to change mode, as the \
+                BusPirate struct will be put into an inconsistent state."
+            )
+        }
+        bpio::send_configuration_request(&mut self.serial_port, request)
     }
 
     /// Put the Bus Pirate into I2C mode.

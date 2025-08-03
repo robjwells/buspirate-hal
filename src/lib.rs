@@ -10,3 +10,4 @@ use util::{EncodedRequest, Response};
 
 pub use buspirate::{open, BusPirate};
 pub use error::Error;
+pub use bpio::{ConfigurationRequest, ModeConfiguration, PsuConfig, IoDirection, LogicLevel};
