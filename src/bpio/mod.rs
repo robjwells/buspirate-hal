@@ -233,7 +233,7 @@ impl IoConfig {
 }
 
 #[derive(Debug, bon::Builder)]
-pub struct ConfigurationRequest<'a> {
+pub struct Configuration<'a> {
     mode_bit_order: Option<BitOrder>,
     psu: Option<PsuConfig>,
     pullup: Option<bool>,
@@ -246,22 +246,22 @@ pub struct ConfigurationRequest<'a> {
     hardware_reset: Option<bool>,
 }
 
-impl<'a> ConfigurationRequest<'a> {
+impl<'a> Configuration<'a> {
     fn empty() -> Self {
         Self::builder().build()
     }
 }
 
-struct FullConfigurationRequest<'a> {
-    cfg: ConfigurationRequest<'a>,
+struct FullConfiguration<'a> {
+    config: Configuration<'a>,
     mode: Option<(Modes, ModeConfiguration)>,
 }
 
-impl<'a> From<FullConfigurationRequest<'a>> for EncodedRequest {
-    fn from(request: FullConfigurationRequest<'a>) -> Self {
+impl<'a> From<FullConfiguration<'a>> for EncodedRequest {
+    fn from(request: FullConfiguration<'a>) -> Self {
         let mut fbb = FlatBufferBuilder::with_capacity(256);
 
-        let FullConfigurationRequest { cfg: config, mode } = request;
+        let FullConfiguration { config, mode } = request;
 
         // Create nested items first to avoid a borrowing conflict with the config builder.
         let mode = mode.map(|(mode, mode_config)| {
@@ -399,19 +399,19 @@ impl ModeConfiguration {
 
 pub(crate) fn send_configuration_request(
     port: impl Read + Write,
-    request: ConfigurationRequest,
+    config: Configuration,
 ) -> Result<(), Error> {
-    send_full_configuration_request(port, request, None)
+    send_full_configuration_request(port, config, None)
 }
 
 // TODO: Method to change configuration of current mode, without changing the mode itself(?)
 
 fn send_full_configuration_request(
     port: impl Read + Write,
-    request: ConfigurationRequest,
+    config: Configuration,
     mode: Option<(Modes, ModeConfiguration)>,
 ) -> Result<(), Error> {
-    let full_config = FullConfigurationRequest { cfg: request, mode };
+    let full_config = FullConfiguration { config, mode };
     let response_bytes = send(port, full_config.into())?;
     let packet = generated::root_as_response_packet(&response_bytes.cobs_decoded)?;
     if let Some(config_response) = packet.contents_as_configuration_response() {
@@ -438,8 +438,8 @@ pub(crate) fn change_mode(
     port: impl Read + Write,
     mode: Modes,
     mode_config: ModeConfiguration,
-    extra_config: Option<ConfigurationRequest<'_>>,
+    extra_config: Option<Configuration<'_>>,
 ) -> Result<(), Error> {
-    let request = extra_config.unwrap_or_else(ConfigurationRequest::empty);
-    send_full_configuration_request(port, request, Some((mode, mode_config)))
+    let config = extra_config.unwrap_or_else(Configuration::empty);
+    send_full_configuration_request(port, config, Some((mode, mode_config)))
 }

@@ -1,6 +1,6 @@
 //! Read a SHT4x sensor with an embedded-hal driver.
 
-use buspirate_hal::{ConfigurationRequest, PsuConfig};
+use buspirate_hal::{Configuration, PsuConfig};
 use embedded_hal_mock::eh1::delay::StdSleep;
 use sht4x_rjw::blocking::SHT4x;
 
@@ -15,7 +15,7 @@ fn main() -> anyhow::Result<()> {
         .millivolts(3300)
         .milliamps(300)
         .build();
-    let extra_config = ConfigurationRequest::builder()
+    let extra_config = Configuration::builder()
         .psu(psu_config)
         .pullup(true)
         .build();

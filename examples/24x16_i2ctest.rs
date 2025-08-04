@@ -1,4 +1,4 @@
-use buspirate_hal::{ConfigurationRequest, PsuConfig};
+use buspirate_hal::{Configuration, PsuConfig};
 use embedded_hal::i2c::I2c;
 
 fn main() {
@@ -7,7 +7,7 @@ fn main() {
         .millivolts(3300)
         .milliamps(300)
         .build();
-    let extra_config = ConfigurationRequest::builder()
+    let extra_config = Configuration::builder()
         .psu(psu_config)
         .pullup(true)
         .build();

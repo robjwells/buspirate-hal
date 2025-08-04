@@ -1,7 +1,7 @@
 //! Read a 24x16 EEPROM.
 #![allow(clippy::unusual_byte_groupings)]
 
-use buspirate_hal::{ConfigurationRequest, PsuConfig};
+use buspirate_hal::{Configuration, PsuConfig};
 use embedded_hal::i2c::I2c;
 
 const PAGES: usize = 8;
@@ -18,7 +18,7 @@ fn main() -> anyhow::Result<()> {
         .millivolts(3300)
         .milliamps(300)
         .build();
-    let extra_config = ConfigurationRequest::builder()
+    let extra_config = Configuration::builder()
         .psu(psu_config)
         .pullup(true)
         .build();

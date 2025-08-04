@@ -2,9 +2,9 @@ use std::{marker::PhantomData, time::Duration};
 
 use serialport::SerialPort;
 
-use crate::bpio::{self, ConfigurationRequest};
-use crate::modes::{self, ActiveMode, I2c, Modes};
-use crate::{EncodedRequest, Error, ModeConfiguration};
+use crate::bpio;
+use crate::modes::{ActiveMode, HiZ, I2c, Modes};
+use crate::{Configuration, EncodedRequest, Error, ModeConfiguration};
 
 /// HAL wrapper
 pub struct BusPirate<M: ActiveMode> {
@@ -23,7 +23,7 @@ macro_rules! with_mode {
     }};
 }
 
-pub fn open(address: &str) -> Result<BusPirate<modes::HiZ>, Error> {
+pub fn open(address: &str) -> Result<BusPirate<HiZ>, Error> {
     let mut serial_port = serialport::new(address, 115_200)
         // TODO: choose a sensible timeout value.
         .timeout(Duration::from_secs(1))
@@ -35,7 +35,7 @@ pub fn open(address: &str) -> Result<BusPirate<modes::HiZ>, Error> {
         ModeConfiguration::empty(),
         None,
     )?;
-    Ok(BusPirate::<modes::HiZ> {
+    Ok(BusPirate::<HiZ> {
         _mode: PhantomData,
         serial_port,
     })
@@ -49,7 +49,7 @@ impl<M: ActiveMode> BusPirate<M> {
         bpio::send_data_request(&mut self.serial_port, request.into())
     }
 
-    pub fn configure(&mut self, request: ConfigurationRequest) -> Result<(), Error> {
+    pub fn configure(&mut self, request: Configuration) -> Result<(), Error> {
         bpio::send_configuration_request(&mut self.serial_port, request)
     }
 
@@ -57,7 +57,7 @@ impl<M: ActiveMode> BusPirate<M> {
         &mut self,
         mode: Modes,
         mode_config: ModeConfiguration,
-        extra_config: Option<ConfigurationRequest>,
+        extra_config: Option<Configuration>,
     ) -> Result<(), Error> {
         bpio::change_mode(&mut self.serial_port, mode, mode_config, extra_config)
     }
@@ -67,8 +67,8 @@ impl<M: ActiveMode> BusPirate<M> {
         mut self,
         speed: u32,
         clock_stretching: bool,
-        extra_config: Option<ConfigurationRequest>,
-    ) -> Result<BusPirate<modes::I2c>, crate::error::Error> {
+        extra_config: Option<Configuration>,
+    ) -> Result<BusPirate<I2c>, crate::error::Error> {
         self.set_mode(
             Modes::I2c,
             ModeConfiguration::builder()
@@ -81,7 +81,7 @@ impl<M: ActiveMode> BusPirate<M> {
     }
 }
 
-impl BusPirate<modes::I2c> {
+impl BusPirate<I2c> {
     pub(crate) fn i2c_stop(&mut self) -> Result<(), Error> {
         let request = bpio::I2cRequest::builder().start(false).stop(true).build();
         self.send_data_request(request)?;
