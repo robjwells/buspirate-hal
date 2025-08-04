@@ -19,6 +19,7 @@ fn send(mut port: impl Read + Write, req: EncodedRequest) -> Result<Response, Er
     let mut decoded_bytes = [0u8; 1024];
     let mut decoder = cobs::CobsDecoder::new(&mut decoded_bytes);
     let mut read_buf = [0u8; 256];
+
     // TODO: This should be bounded.
     loop {
         // TODO: Log n bytes read to get an idea of how large read_buf should be.
@@ -30,32 +31,62 @@ fn send(mut port: impl Read + Write, req: EncodedRequest) -> Result<Response, Er
     }
 }
 
+impl From<generated::ErrorResponse<'_>> for crate::Error {
+    fn from(value: generated::ErrorResponse<'_>) -> Self {
+        Self::BpioErrorMessage(value.error().unwrap_or_default().to_owned())
+    }
+}
+
+impl From<generated::ResponsePacketContents> for Error {
+    fn from(value: generated::ResponsePacketContents) -> Self {
+        Self::UnexpectedResponseType(
+            value
+                .variant_name()
+                .expect("Variants must have defined names."),
+        )
+    }
+}
+
+/// Handle the ways in which a ResponsePacket can be erroneous.
+///
+/// This should be used *after* handling an error from the flatbuffer
+/// decoding process.
+macro_rules! check_response {
+    ($packet:ident, $e:expr) => {{
+        match $e {
+            Some(v) => {
+                if let Some(error_message) = v.error() {
+                    // Correct response type, but contains an error message.
+                    Err(Error::BpioErrorMessage(error_message.to_owned()))
+                } else {
+                    // Correct response type, no error.
+                    Ok(v)
+                }
+            }
+            None => {
+                if let Some(error_response) = $packet.contents_as_error_response() {
+                    // Response type is an error response.
+                    Err(error_response.into())
+                } else {
+                    // Response type is not what was expected.
+                    Err($packet.contents_type().into())
+                }
+            }
+        }
+    }};
+}
+
 pub(crate) fn send_data_request(
     port: impl Read + Write,
     req: EncodedRequest,
 ) -> Result<Option<Vec<u8>>, Error> {
     let response = send(port, req)?;
     let packet = generated::root_as_response_packet(&response.cobs_decoded)?;
-    if let Some(data_response) = packet.contents_as_data_response() {
-        if let Some(error_message) = data_response.error() {
-            return Err(Error::BpioErrorMessage(error_message.to_owned()));
-        }
-        Ok(data_response
-            .data_read()
-            .filter(|v| !v.is_empty())
-            .map(|v| v.iter().collect()))
-    } else if let Some(error_response) = packet.contents_as_error_response() {
-        Err(Error::BpioErrorMessage(
-            error_response.error().unwrap_or_default().to_owned(),
-        ))
-    } else {
-        Err(Error::UnexpectedResponseType(
-            packet
-                .contents_type()
-                .variant_name()
-                .expect("Variants must have defined names."),
-        ))
-    }
+    let data_response = check_response!(packet, packet.contents_as_data_response())?;
+    Ok(data_response
+        .data_read()
+        .filter(|v| !v.is_empty())
+        .map(|v| v.iter().collect()))
 }
 
 #[derive(Debug, bon::Builder)]
@@ -414,24 +445,7 @@ fn send_full_configuration_request(
     let full_config = FullConfiguration { config, mode };
     let response_bytes = send(port, full_config.into())?;
     let packet = generated::root_as_response_packet(&response_bytes.cobs_decoded)?;
-    if let Some(config_response) = packet.contents_as_configuration_response() {
-        if let Some(error_message) = config_response.error() {
-            Err(Error::BpioErrorMessage(error_message.to_owned()))
-        } else {
-            Ok(())
-        }
-    } else if let Some(error_response) = packet.contents_as_error_response() {
-        Err(Error::BpioErrorMessage(
-            error_response.error().unwrap_or_default().to_owned(),
-        ))
-    } else {
-        Err(Error::UnexpectedResponseType(
-            packet
-                .contents_type()
-                .variant_name()
-                .expect("Variants must have defined names."),
-        ))
-    }
+    check_response!(packet, packet.contents_as_configuration_response()).map(drop)
 }
 
 pub(crate) fn change_mode(
