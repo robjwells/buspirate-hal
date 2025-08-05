@@ -135,10 +135,11 @@ impl I2c for BusPirate<modes::I2c> {
         if let Some(data) = self.send_data_request(request)? {
             read.copy_from_slice(&data);
             Ok(())
+        } else if read.is_empty() {
+            // No data received, but didn't expect any.
+            Ok(())
         } else {
-            // TODO: Handle error properly.
-            eprintln!("Couldn't get data response from contents.");
-            Err(Error::Other)
+            Err(Error::NoDataReceived)
         }
     }
 

@@ -3,7 +3,8 @@ use std::{marker::PhantomData, time::Duration};
 use serialport::SerialPort;
 
 use crate::bpio;
-use crate::modes::{ActiveMode, HiZ, I2c, Modes};
+use crate::modes::{ActiveMode, HiZ, I2c, Modes, Spi};
+use crate::util::{ChipSelectPolarity, ClockPhase, ClockPolarity};
 use crate::{Configuration, EncodedRequest, Error, ModeConfiguration};
 
 /// HAL wrapper
@@ -78,6 +79,26 @@ impl<M: ActiveMode> BusPirate<M> {
             extra_config,
         )?;
         Ok(with_mode!(self, I2c))
+    }
+
+    pub fn enter_spi_mode(
+        mut self,
+        speed: u32,
+        data_bits: u8,
+        clock_polarity: ClockPolarity,
+        clock_phase: ClockPhase,
+        chip_select_polarity: ChipSelectPolarity,
+        extra_config: Option<Configuration>,
+    ) -> Result<BusPirate<Spi>, Error> {
+        let mode_config = ModeConfiguration::builder()
+            .speed(speed)
+            .data_bits(data_bits)
+            .clock_polarity(clock_polarity.for_bpio())
+            .clock_phase(clock_phase.for_bpio())
+            .chip_select_idle(chip_select_polarity.for_bpio())
+            .build();
+        self.set_mode(Modes::Spi, mode_config, extra_config)?;
+        Ok(with_mode!(self, Spi))
     }
 }
 

@@ -7,6 +7,7 @@ pub enum Error {
     FlatbufferUnexpectedContents,
     BpioErrorMessage(String),
     UnexpectedResponseType(&'static str),
+    NoDataReceived,
     Other,
 }
 

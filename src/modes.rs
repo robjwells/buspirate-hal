@@ -17,16 +17,20 @@ macro_rules! impl_mode {
     };
 }
 
+pub struct HiZ;
+impl_mode!(HiZ);
+
 pub struct I2c;
 impl_mode!(I2c);
 
-pub struct HiZ;
-impl_mode!(HiZ);
+pub struct Spi;
+impl_mode!(Spi);
 
 #[derive(Debug, Clone, Copy)]
 pub enum Modes {
     HiZ,
     I2c,
+    Spi,
 }
 
 impl Modes {
@@ -34,15 +38,7 @@ impl Modes {
         match self {
             Modes::HiZ => "HiZ",
             Modes::I2c => "I2C",
-        }
-    }
-}
-
-impl From<Modes> for Box<dyn ActiveMode> {
-    fn from(value: Modes) -> Self {
-        match value {
-            Modes::HiZ => Box::new(HiZ),
-            Modes::I2c => Box::new(I2c),
+            Modes::Spi => "SPI",
         }
     }
 }

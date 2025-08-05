@@ -155,6 +155,39 @@ impl<'a> From<I2cRequest<'a>> for EncodedRequest {
     }
 }
 
+#[derive(Debug, bon::Builder)]
+pub(crate) struct DataRequest<'a> {
+    start: bool,
+    stop: bool,
+    bytes_to_write: Option<&'a [u8]>,
+    #[builder(with = |n: usize| n as u16)]
+    bytes_to_read: Option<u16>,
+}
+
+impl<'a> From<DataRequest<'a>> for EncodedRequest {
+    fn from(request: DataRequest<'a>) -> Self {
+        let mut builder = FlatBufferBuilder::new();
+        let write_vector = request
+            .bytes_to_write
+            .map(|data| builder.create_vector(data));
+
+        let mut data_request = generated::DataRequestBuilder::new(&mut builder);
+        data_request.add_start_main(request.start);
+        data_request.add_stop_main(request.stop);
+        if let Some(bytes_read) = request.bytes_to_read {
+            data_request.add_bytes_read(bytes_read);
+        }
+        if let Some(wv) = write_vector {
+            data_request.add_data_write(wv);
+        }
+        let data_request = data_request.finish();
+        let packet = build_data_request_packet(&mut builder, data_request);
+
+        builder.finish_minimal(packet);
+        EncodedRequest::encode(builder.finished_data())
+    }
+}
+
 fn build_data_request_packet<'a>(
     builder: &mut FlatBufferBuilder<'a>,
     data_request: flatbuffers::WIPOffset<generated::DataRequest<'a>>,
@@ -211,6 +244,22 @@ pub struct PsuConfig {
 }
 
 impl PsuConfig {
+    pub fn enable(millivolts: u32, milliamps: u16) -> Self {
+        Self {
+            enable: Some(true),
+            millivolts: Some(millivolts),
+            milliamps: Some(milliamps),
+        }
+    }
+
+    pub fn disable() -> Self {
+        Self {
+            enable: Some(false),
+            millivolts: None,
+            milliamps: None,
+        }
+    }
+
     fn apply<T>(&self, cfg: &mut generated::ConfigurationRequestBuilder<T>)
     where
         T: flatbuffers::Allocator,
