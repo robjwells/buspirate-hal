@@ -1,3 +1,7 @@
+use std::time::Duration;
+
+use embedded_hal::spi::{Operation, SpiBus, SpiDevice};
+
 use crate::{bpio::DataRequest, modes::Spi, BusPirate, Error};
 
 impl embedded_hal::spi::Error for Error {
@@ -23,7 +27,7 @@ fn copy(received: Option<Vec<u8>>, buf: &mut [u8]) -> Result<(), Error> {
     }
 }
 
-impl embedded_hal::spi::SpiBus for BusPirate<Spi> {
+impl SpiBus for BusPirate<Spi> {
     fn read(&mut self, words: &mut [u8]) -> Result<(), Self::Error> {
         let request = DataRequest::builder()
             .start(true)
@@ -32,7 +36,7 @@ impl embedded_hal::spi::SpiBus for BusPirate<Spi> {
             .build();
 
         self.send_data_request(request)
-            .map(|received| copy(received, words))?
+            .and_then(|received| copy(received, words))
     }
 
     fn write(&mut self, words: &[u8]) -> Result<(), Self::Error> {
@@ -53,7 +57,7 @@ impl embedded_hal::spi::SpiBus for BusPirate<Spi> {
             .build();
 
         self.send_data_request(request)
-            .map(|received| copy(received, read))?
+            .and_then(|received| copy(received, read))
     }
 
     fn transfer_in_place(&mut self, words: &mut [u8]) -> Result<(), Self::Error> {
@@ -65,11 +69,97 @@ impl embedded_hal::spi::SpiBus for BusPirate<Spi> {
             .build();
 
         self.send_data_request(request)
-            .map(|received| copy(received, words))?
+            .and_then(|received| copy(received, words))
     }
 
     fn flush(&mut self) -> Result<(), Self::Error> {
         // Flush is a no-op because communication with the Bus Pirate is synchronous.
         Ok(())
+    }
+}
+
+impl SpiDevice for BusPirate<Spi> {
+    fn transaction(&mut self, operations: &mut [Operation<'_, u8>]) -> Result<(), Self::Error> {
+        if operations.is_empty() {
+            return Ok(());
+        }
+
+        let start_request = DataRequest::builder().start(true).stop(false).build();
+        let stop_request = DataRequest::builder().start(false).stop(true).build();
+
+        // Assert chip select line
+        let _ = self.send_data_request(start_request)?;
+
+        for op in operations {
+            let res = match op {
+                Operation::Read(read) => {
+                    let req = DataRequest::builder()
+                        .start(false)
+                        .stop(false)
+                        .bytes_to_read(read.len())
+                        .build();
+                    self.send_data_request(req).and_then(|r| copy(r, read))
+                }
+                Operation::Write(write) => {
+                    let req = DataRequest::builder()
+                        .start(false)
+                        .stop(false)
+                        .bytes_to_write(write)
+                        .build();
+                    self.send_data_request(req).map(drop)
+                }
+                Operation::Transfer(read, write) => {
+                    let req = DataRequest::builder()
+                        .start(false)
+                        .stop(false)
+                        .bytes_to_read(read.len())
+                        .bytes_to_write(write)
+                        .build();
+                    self.send_data_request(req).and_then(|r| copy(r, read))
+                }
+                Operation::TransferInPlace(words) => {
+                    let req = DataRequest::builder()
+                        .start(false)
+                        .stop(false)
+                        .bytes_to_read(words.len())
+                        .bytes_to_write(words)
+                        .build();
+                    self.send_data_request(req).and_then(|r| copy(r, words))
+                }
+                Operation::DelayNs(ns) => {
+                    std::thread::sleep(Duration::from_nanos(*ns as u64));
+                    Ok(())
+                }
+            };
+
+            // Try to clean up if there was an error.
+            if let error @ Err(..) = res {
+                // Attempt to release the chip select line.
+                let _ = self.send_data_request(stop_request);
+                // If that fails, ignore it as we're already in an error state.
+                return error;
+            }
+        }
+
+        // Release the chip select line.
+        self.send_data_request(stop_request).map(drop)
+    }
+
+    // For the single-operation methods, just use the SpiBus methods as the implementation
+    // would be identical.
+    fn read(&mut self, buf: &mut [u8]) -> Result<(), Self::Error> {
+        <Self as SpiBus>::read(self, buf)
+    }
+
+    fn write(&mut self, buf: &[u8]) -> Result<(), Self::Error> {
+        <Self as SpiBus>::write(self, buf)
+    }
+
+    fn transfer(&mut self, read: &mut [u8], write: &[u8]) -> Result<(), Self::Error> {
+        <Self as SpiBus>::transfer(self, read, write)
+    }
+
+    fn transfer_in_place(&mut self, buf: &mut [u8]) -> Result<(), Self::Error> {
+        <Self as SpiBus>::transfer_in_place(self, buf)
     }
 }
