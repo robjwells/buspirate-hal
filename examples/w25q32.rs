@@ -1,9 +1,10 @@
+
 use buspirate_hal::{
     open, ChipSelectPolarity, ClockPhase, ClockPolarity, Configuration, PsuConfig,
 };
 use embedded_hal::spi::SpiDevice;
 
-const N_BYTES: usize = 1024 * 1024 * 4 / 8;
+const N_BYTES: usize = 1024 * 1024 * 32 / 8;
 const PAGE_SIZE: usize = 512;
 const N_PAGES: usize = N_BYTES / PAGE_SIZE;
 
@@ -23,7 +24,7 @@ fn main() {
     let mut bp = open(&path)
         .unwrap()
         .enter_spi_mode(
-            8_000_000,
+            62_500_000,
             8,
             ClockPolarity::ActiveHigh,
             ClockPhase::LeadingEdge,
@@ -32,7 +33,7 @@ fn main() {
         )
         .unwrap();
 
-    let mut dump = [0u8; N_BYTES];
+    let mut dump = vec![0u8; N_BYTES];
     for page_idx in 0..N_PAGES {
         let start_idx = page_idx * PAGE_SIZE;
         let end_idx = start_idx + PAGE_SIZE;
