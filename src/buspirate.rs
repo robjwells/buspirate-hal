@@ -30,12 +30,21 @@ pub fn open(address: &str) -> Result<BusPirate<HiZ>, Error> {
         .timeout(Duration::from_secs(1))
         .open()?;
     // Put the Bus Pirate into high-impedance mode upon opening the serial port.
+    // bpio::change_mode(
+    //     &mut serial_port,
+    //     Modes::HiZ,
+    //     ModeConfiguration::empty(),
+    //     None,
+    // )?;
+
+    // TODO: This is temporary while HiZ mode is unsupported.
     bpio::change_mode(
         &mut serial_port,
-        Modes::HiZ,
+        Modes::I2c,
         ModeConfiguration::empty(),
         None,
     )?;
+
     Ok(BusPirate::<HiZ> {
         _mode: PhantomData,
         serial_port,
