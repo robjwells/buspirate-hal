@@ -1,6 +1,6 @@
-// TODO: Patch out the warning-generating code.
 #[allow(clippy::all)]
 #[allow(unused_imports)]
+#[allow(mismatched_lifetime_syntaxes)]
 mod bpio_generated;
 
 use std::io::{Read, Write};
@@ -11,6 +11,11 @@ use flatbuffers::FlatBufferBuilder;
 use crate::modes::Modes;
 use crate::{EncodedRequest, Error, Response};
 use bpio_generated::bpio as generated;
+
+// BPIO interface major version
+const VERSION_MAJOR: u8 = 2;
+// BPIO interface minor version
+const VERSION_MINOR: u8 = 0;
 
 fn send(mut port: impl Read + Write, req: EncodedRequest) -> Result<Response, Error> {
     port.write_all(&req.cobs_encoded)?;
@@ -127,9 +132,12 @@ impl I2cRequest<'_> {
         address: Option<u8>,
         data: Option<&[u8]>,
     ) -> Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, u8>>> {
-        let num_bytes @ 1.. = address.is_some().then_some(1).unwrap_or_default()
-            + data.map(|d| d.len()).unwrap_or_default()
-        else {
+        // TODO: Clean this up. It's horrible.
+        let num_bytes @ 1.. = (if address.is_some() {
+            1
+        } else {
+            Default::default()
+        }) + data.map(|d| d.len()).unwrap_or_default() else {
             return None;
         };
 
@@ -193,6 +201,8 @@ fn build_data_request_packet<'a>(
     data_request: flatbuffers::WIPOffset<generated::DataRequest<'a>>,
 ) -> flatbuffers::WIPOffset<generated::RequestPacket<'a>> {
     let mut packet = generated::RequestPacketBuilder::new(builder);
+    packet.add_version_major(VERSION_MAJOR);
+    packet.add_version_minor(VERSION_MINOR);
     packet.add_contents_type(generated::RequestPacketContents::DataRequest);
     packet.add_contents(data_request.as_union_value());
     packet.finish()
@@ -317,7 +327,6 @@ pub struct Configuration<'a> {
     mode_bit_order: Option<BitOrder>,
     psu: Option<PsuConfig>,
     pullup: Option<bool>,
-    // pullx_config: Option<u32> // TODO: learn how this works
     io: Option<IoConfig>,
     led_resume: Option<bool>,
     led_color: Option<&'a [u32]>,
@@ -394,6 +403,8 @@ impl<'a> From<FullConfiguration<'a>> for EncodedRequest {
         let cfg = builder.finish();
 
         let mut packet = generated::RequestPacketBuilder::new(&mut fbb);
+        packet.add_version_major(VERSION_MAJOR);
+        packet.add_version_minor(VERSION_MINOR);
         packet.add_contents_type(generated::RequestPacketContents::ConfigurationRequest);
         packet.add_contents(cfg.as_union_value());
         let packet = packet.finish();
