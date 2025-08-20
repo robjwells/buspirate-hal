@@ -333,6 +333,7 @@ pub struct Configuration<'a> {
     print_string: Option<&'a str>,
     hardware_bootloader: Option<bool>,
     hardware_reset: Option<bool>,
+    hardware_selftest: Option<bool>,
 }
 
 impl<'a> Configuration<'a> {
@@ -399,6 +400,9 @@ impl<'a> From<FullConfiguration<'a>> for EncodedRequest {
         }
         if let Some(hardware_reset) = config.hardware_reset {
             builder.add_hardware_reset(hardware_reset);
+        }
+        if let Some(hardware_selftest) = config.hardware_selftest {
+            builder.add_hardware_selftest(hardware_selftest);
         }
         let cfg = builder.finish();
 

@@ -109,6 +109,11 @@ impl<M: ActiveMode> BusPirate<M> {
         self.set_mode(Modes::Spi, mode_config, extra_config)?;
         Ok(with_mode!(self, Spi))
     }
+
+    pub fn selftest(&mut self) -> Result<(), Error> {
+        let config_request = Configuration::builder().hardware_selftest(true).build();
+        self.configure(config_request)
+    }
 }
 
 impl BusPirate<I2c> {
