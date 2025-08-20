@@ -3,7 +3,7 @@ use std::{marker::PhantomData, time::Duration};
 use serialport::SerialPort;
 
 use crate::bpio;
-use crate::modes::{ActiveMode, HiZ, I2c, Modes, Spi};
+use crate::modes::{ActiveMode, I2c, Modes, Spi};
 use crate::util::{ChipSelectPolarity, ClockPhase, ClockPolarity};
 use crate::{Configuration, EncodedRequest, Error, ModeConfiguration};
 
@@ -24,7 +24,7 @@ macro_rules! with_mode {
     }};
 }
 
-pub fn open(address: &str) -> Result<BusPirate<HiZ>, Error> {
+pub fn open(address: &str) -> Result<BusPirate<I2c>, Error> {
     let mut serial_port = serialport::new(address, 115_200)
         // TODO: choose a sensible timeout value.
         .timeout(Duration::from_secs(1))
@@ -45,7 +45,7 @@ pub fn open(address: &str) -> Result<BusPirate<HiZ>, Error> {
         None,
     )?;
 
-    Ok(BusPirate::<HiZ> {
+    Ok(BusPirate::<I2c> {
         _mode: PhantomData,
         serial_port,
     })
