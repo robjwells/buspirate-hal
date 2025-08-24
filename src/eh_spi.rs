@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use embedded_hal::spi::{Operation, SpiBus, SpiDevice};
+use log::debug;
 
 use crate::{bpio::DataRequest, modes::Spi, BusPirate, Error};
 
@@ -29,6 +30,8 @@ fn copy(received: Option<Vec<u8>>, buf: &mut [u8]) -> Result<(), Error> {
 
 impl SpiBus for BusPirate<Spi> {
     fn read(&mut self, words: &mut [u8]) -> Result<(), Self::Error> {
+        debug!("SPI Read r:{}", words.len());
+
         let request = DataRequest::builder()
             .start(true)
             .stop(true)
@@ -40,6 +43,8 @@ impl SpiBus for BusPirate<Spi> {
     }
 
     fn write(&mut self, words: &[u8]) -> Result<(), Self::Error> {
+        debug!("SPI Write w:{}", words.len());
+
         let request = DataRequest::builder()
             .start(true)
             .stop(true)
@@ -49,6 +54,9 @@ impl SpiBus for BusPirate<Spi> {
     }
 
     fn transfer(&mut self, read: &mut [u8], write: &[u8]) -> Result<(), Self::Error> {
+        debug!("SPI Transfer w:{} r:{}", write.len(), read.len());
+        // TODO: transfer is simultaneous read & write, not sequential.
+
         let request = DataRequest::builder()
             .start(true)
             .stop(true)
@@ -61,6 +69,9 @@ impl SpiBus for BusPirate<Spi> {
     }
 
     fn transfer_in_place(&mut self, words: &mut [u8]) -> Result<(), Self::Error> {
+        debug!("SPI Transfer in place w:{} r:{}", words.len(), words.len());
+        // TODO: transfer is simultaneous read & write, not sequential.
+
         let request = DataRequest::builder()
             .start(true)
             .stop(true)
@@ -108,6 +119,7 @@ impl SpiDevice for BusPirate<Spi> {
                         .build();
                     self.send_data_request(req).map(drop)
                 }
+                // TODO: transfer is simultaneous read & write, not sequential.
                 Operation::Transfer(read, write) => {
                     let req = DataRequest::builder()
                         .start(false)
@@ -117,6 +129,7 @@ impl SpiDevice for BusPirate<Spi> {
                         .build();
                     self.send_data_request(req).and_then(|r| copy(r, read))
                 }
+                // TODO: transfer is simultaneous read & write, not sequential.
                 Operation::TransferInPlace(words) => {
                     let req = DataRequest::builder()
                         .start(false)

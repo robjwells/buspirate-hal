@@ -1,5 +1,6 @@
 use std::{marker::PhantomData, time::Duration};
 
+use log::debug;
 use serialport::SerialPort;
 
 use crate::bpio;
@@ -29,6 +30,8 @@ pub fn open(address: &str) -> Result<BusPirate<I2c>, Error> {
         // TODO: choose a sensible timeout value.
         .timeout(Duration::from_secs(1))
         .open()?;
+    debug!("Connected to serial port {address:?}");
+
     // Put the Bus Pirate into high-impedance mode upon opening the serial port.
     // bpio::change_mode(
     //     &mut serial_port,
@@ -118,6 +121,7 @@ impl<M: ActiveMode> BusPirate<M> {
 
 impl BusPirate<I2c> {
     pub(crate) fn i2c_stop(&mut self) -> Result<(), Error> {
+        debug!("I2C: Stop");
         let request = bpio::I2cRequest::builder().start(false).stop(true).build();
         self.send_data_request(request)?;
         Ok(())

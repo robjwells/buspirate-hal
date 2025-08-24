@@ -1,6 +1,7 @@
 use std::mem::{discriminant, Discriminant};
 
 use embedded_hal::i2c::{ErrorType, I2c, Operation};
+use log::{debug, trace};
 
 use crate::{bpio::I2cRequest, error::Error, modes, BusPirate};
 
@@ -31,6 +32,17 @@ impl ErrorType for BusPirate<modes::I2c> {
     type Error = Error;
 }
 
+fn summarise_operations_for_log(operations: &[Operation<'_>]) -> String {
+    operations
+        .iter()
+        .map(|o| match o {
+            Operation::Read(items) => format!("r:{}", items.len()),
+            Operation::Write(items) => format!("w:{}", items.len()),
+        })
+        .collect::<Vec<String>>()
+        .join(" ")
+}
+
 impl I2c for BusPirate<modes::I2c> {
     fn transaction(
         &mut self,
@@ -38,6 +50,10 @@ impl I2c for BusPirate<modes::I2c> {
         operations: &mut [Operation<'_>],
     ) -> Result<(), Self::Error> {
         // TODO: Audit error points for I2C transaction cleanup.
+        debug!(
+            "I2C transaction: {address:#X} {}",
+            summarise_operations_for_log(operations)
+        );
 
         type PreviousOp<'a> = Option<Discriminant<Operation<'a>>>;
         // Track the type (Read/Write) of the previous I2C operation to allow
@@ -77,6 +93,7 @@ impl I2c for BusPirate<modes::I2c> {
             } else {
                 request.start(false).build()
             };
+            trace!("{request:?}");
 
             // Update the previous operation for Repeated-Start purposes.
             previous_operation = Some(discriminant(operation));
@@ -105,6 +122,12 @@ impl I2c for BusPirate<modes::I2c> {
         read: &mut [u8],
     ) -> Result<(), Self::Error> {
         // TODO: What if `read` is longer than u16::MAX?
+        debug!(
+            "I2C Write-Read to {:#X} w:{} r:{}",
+            address,
+            write.len(),
+            read.len()
+        );
 
         let request = I2cRequest::builder()
             .start(true)
@@ -125,6 +148,8 @@ impl I2c for BusPirate<modes::I2c> {
     }
 
     fn read(&mut self, address: u8, read: &mut [u8]) -> Result<(), Self::Error> {
+        debug!("I2C Read to {:#X} r:{}", address, read.len());
+
         let request = I2cRequest::builder()
             .start(true)
             .stop(true)
@@ -144,6 +169,8 @@ impl I2c for BusPirate<modes::I2c> {
     }
 
     fn write(&mut self, address: u8, write: &[u8]) -> Result<(), Self::Error> {
+        debug!("I2C Write to {:#X} w:{}", address, write.len());
+
         let request = I2cRequest::builder()
             .start(true)
             .stop(true)

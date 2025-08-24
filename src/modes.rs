@@ -64,3 +64,14 @@ impl std::str::FromStr for Modes {
         })
     }
 }
+
+impl std::fmt::Display for Modes {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let name = match self {
+            Modes::HiZ => "HiZ",
+            Modes::I2c => "I2C",
+            Modes::Spi => "SPI",
+        };
+        write!(f, "{name}")
+    }
+}

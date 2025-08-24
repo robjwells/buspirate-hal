@@ -7,6 +7,7 @@ use std::io::{Read, Write};
 
 use bit_field::BitField;
 use flatbuffers::FlatBufferBuilder;
+use log::{debug, trace};
 
 use crate::modes::Modes;
 use crate::{EncodedRequest, Error, Response};
@@ -19,6 +20,7 @@ const VERSION_MINOR: u8 = 0;
 
 fn send(mut port: impl Read + Write, req: EncodedRequest) -> Result<Response, Error> {
     port.write_all(&req.cobs_encoded)?;
+    trace!("Send: wrote {}", req.cobs_encoded.len());
 
     // 1kB decode buffer
     let mut decoded_bytes = [0u8; 1024];
@@ -27,10 +29,11 @@ fn send(mut port: impl Read + Write, req: EncodedRequest) -> Result<Response, Er
 
     // TODO: This should be bounded.
     loop {
-        // TODO: Log n bytes read to get an idea of how large read_buf should be.
         let bytes_read = port.read(&mut read_buf)?;
+        trace!("Send: read {bytes_read}");
         if let Some(report) = decoder.push(&read_buf[..bytes_read])? {
             let packet = decoded_bytes[..report.frame_size()].to_vec();
+            trace!("Send: {}-byte response packet", packet.len());
             return Ok(Response::new(packet));
         }
     }
@@ -496,6 +499,8 @@ pub(crate) fn send_configuration_request(
     port: impl Read + Write,
     config: Configuration,
 ) -> Result<(), Error> {
+    debug!("Sending config request");
+    trace!("{config:?}");
     send_full_configuration_request(port, config, None)
 }
 
@@ -519,5 +524,8 @@ pub(crate) fn change_mode(
     extra_config: Option<Configuration<'_>>,
 ) -> Result<(), Error> {
     let config = extra_config.unwrap_or_else(Configuration::empty);
+    debug!("Changing mode to {mode}");
+    trace!("{mode_config:#?}");
+    trace!("{config:#?}");
     send_full_configuration_request(port, config, Some((mode, mode_config)))
 }

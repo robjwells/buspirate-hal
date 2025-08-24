@@ -8,6 +8,8 @@ const PAGES: usize = 8;
 const PAGE_SIZE: usize = 256;
 
 fn main() -> anyhow::Result<()> {
+    env_logger::builder().format_timestamp_millis().init();
+
     let Some(path) = std::env::args().nth(1) else {
         eprintln!("Provide the serial port path as the first argument.");
         std::process::exit(1)
