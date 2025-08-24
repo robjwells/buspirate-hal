@@ -53,7 +53,7 @@ impl std::str::FromStr for Modes {
             "1WIRE" => todo!("1WIRE"),
             "UART" => todo!("UART"),
             "HDUART" => todo!("HDUART"),
-            "SPI" => todo!("SPI"),
+            "SPI" => Self::Spi,
             "2WIRE" => todo!("2WIRE"),
             "3WIRE" => todo!("3WIRE"),
             "DIO" => todo!("DIO"),
