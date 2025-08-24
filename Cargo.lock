@@ -117,12 +117,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "bpio2"
+version = "0.2.1"
+source = "git+https://github.com/robjwells/BusPirate-BPIO2-flatbuffer-interface.git?branch=rust-bpio2-crate#5929df4703b6c9a6392643e155c4f4c71a6a1577"
+dependencies = [
+ "flatbuffers",
+]
+
+[[package]]
 name = "buspirate-hal"
 version = "0.1.0"
 dependencies = [
  "anyhow",
  "bit_field",
  "bon",
+ "bpio2",
  "cobs",
  "embedded-hal 1.0.0",
  "embedded-hal-mock",

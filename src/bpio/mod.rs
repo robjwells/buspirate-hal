@@ -1,22 +1,17 @@
-#[allow(clippy::all)]
-#[allow(unused_imports)]
-#[allow(mismatched_lifetime_syntaxes)]
-mod bpio_generated;
-
 use std::io::{Read, Write};
 
 use bit_field::BitField;
+use bpio2 as generated;
 use flatbuffers::FlatBufferBuilder;
 use log::{debug, trace};
 
 use crate::modes::Modes;
 use crate::{EncodedRequest, Error, Response};
-use bpio_generated::bpio as generated;
 
 // BPIO interface major version
 const VERSION_MAJOR: u8 = 2;
 // BPIO interface minor version
-const VERSION_MINOR: u8 = 0;
+const MINIMUM_VERSION_MINOR: u16 = 0;
 
 fn send(mut port: impl Read + Write, req: EncodedRequest) -> Result<Response, Error> {
     port.write_all(&req.cobs_encoded)?;
@@ -39,12 +34,6 @@ fn send(mut port: impl Read + Write, req: EncodedRequest) -> Result<Response, Er
     }
 }
 
-impl From<generated::ErrorResponse<'_>> for crate::Error {
-    fn from(value: generated::ErrorResponse<'_>) -> Self {
-        Self::BpioErrorMessage(value.error().unwrap_or_default().to_owned())
-    }
-}
-
 impl From<generated::ResponsePacketContents> for Error {
     fn from(value: generated::ResponsePacketContents) -> Self {
         Self::UnexpectedResponseType(
@@ -61,25 +50,18 @@ impl From<generated::ResponsePacketContents> for Error {
 /// decoding process.
 macro_rules! check_response {
     ($packet:ident, $e:expr) => {{
-        match $e {
-            Some(v) => {
-                if let Some(error_message) = v.error() {
-                    // Correct response type, but contains an error message.
-                    Err(Error::BpioErrorMessage(error_message.to_owned()))
-                } else {
-                    // Correct response type, no error.
-                    Ok(v)
-                }
+        if let Some(msg) = $packet.error() {
+            Err(Error::BpioErrorMessage(msg.to_owned()))
+        } else if let Some(v) = $e {
+            if let Some(error_message) = v.error() {
+                // Correct response type, but contains an error message.
+                Err(Error::BpioErrorMessage(error_message.to_owned()))
+            } else {
+                // Correct response type, no error.
+                Ok(v)
             }
-            None => {
-                if let Some(error_response) = $packet.contents_as_error_response() {
-                    // Response type is an error response.
-                    Err(error_response.into())
-                } else {
-                    // Response type is not what was expected.
-                    Err($packet.contents_type().into())
-                }
-            }
+        } else {
+            Err($packet.contents_type().into())
         }
     }};
 }
@@ -205,7 +187,7 @@ fn build_data_request_packet<'a>(
 ) -> flatbuffers::WIPOffset<generated::RequestPacket<'a>> {
     let mut packet = generated::RequestPacketBuilder::new(builder);
     packet.add_version_major(VERSION_MAJOR);
-    packet.add_version_minor(VERSION_MINOR);
+    packet.add_minimum_version_minor(MINIMUM_VERSION_MINOR);
     packet.add_contents_type(generated::RequestPacketContents::DataRequest);
     packet.add_contents(data_request.as_union_value());
     packet.finish()
@@ -411,7 +393,7 @@ impl<'a> From<FullConfiguration<'a>> for EncodedRequest {
 
         let mut packet = generated::RequestPacketBuilder::new(&mut fbb);
         packet.add_version_major(VERSION_MAJOR);
-        packet.add_version_minor(VERSION_MINOR);
+        packet.add_minimum_version_minor(MINIMUM_VERSION_MINOR);
         packet.add_contents_type(generated::RequestPacketContents::ConfigurationRequest);
         packet.add_contents(cfg.as_union_value());
         let packet = packet.finish();
