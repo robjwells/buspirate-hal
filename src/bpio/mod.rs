@@ -151,6 +151,7 @@ impl<'a> From<I2cRequest<'a>> for EncodedRequest {
 #[derive(Debug, bon::Builder)]
 pub(crate) struct DataRequest<'a> {
     start: bool,
+    start_alt: Option<bool>,
     stop: bool,
     bytes_to_write: Option<&'a [u8]>,
     #[builder(with = |n: usize| n as u16)]
@@ -166,6 +167,9 @@ impl<'a> From<DataRequest<'a>> for EncodedRequest {
 
         let mut data_request = generated::DataRequestBuilder::new(&mut builder);
         data_request.add_start_main(request.start);
+        if let Some(start_alt) = request.start_alt {
+            data_request.add_start_alt(start_alt);
+        }
         data_request.add_stop_main(request.stop);
         if let Some(bytes_read) = request.bytes_to_read {
             data_request.add_bytes_read(bytes_read);

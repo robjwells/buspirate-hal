@@ -3,7 +3,7 @@ use std::time::Duration;
 use embedded_hal::spi::{Operation, SpiBus, SpiDevice};
 use log::debug;
 
-use crate::{bpio::DataRequest, modes::Spi, BusPirate, Error};
+use crate::{BusPirate, Error, bpio::DataRequest, modes::Spi};
 
 impl embedded_hal::spi::Error for Error {
     fn kind(&self) -> embedded_hal::spi::ErrorKind {
@@ -55,10 +55,11 @@ impl SpiBus for BusPirate<Spi> {
 
     fn transfer(&mut self, read: &mut [u8], write: &[u8]) -> Result<(), Self::Error> {
         debug!("SPI Transfer w:{} r:{}", write.len(), read.len());
-        // TODO: transfer is simultaneous read & write, not sequential.
 
+        // start_alt or { reads bytes as a byte is written (full-duplex).
         let request = DataRequest::builder()
-            .start(true)
+            .start(false)
+            .start_alt(true)
             .stop(true)
             .bytes_to_read(read.len())
             .bytes_to_write(write)
@@ -69,11 +70,12 @@ impl SpiBus for BusPirate<Spi> {
     }
 
     fn transfer_in_place(&mut self, words: &mut [u8]) -> Result<(), Self::Error> {
-        debug!("SPI Transfer in place w:{} r:{}", words.len(), words.len());
-        // TODO: transfer is simultaneous read & write, not sequential.
+        debug!("SPI Transfer in place w/r:{}", words.len());
 
+        // start_alt or { reads bytes as a byte is written (full-duplex).
         let request = DataRequest::builder()
-            .start(true)
+            .start(false)
+            .start_alt(true)
             .stop(true)
             .bytes_to_read(words.len())
             .bytes_to_write(words)
@@ -95,17 +97,13 @@ impl SpiDevice for BusPirate<Spi> {
             return Ok(());
         }
 
-        let start_request = DataRequest::builder().start(true).stop(false).build();
         let stop_request = DataRequest::builder().start(false).stop(true).build();
-
-        // Assert chip select line
-        let _ = self.send_data_request(start_request)?;
 
         for op in operations {
             let res = match op {
                 Operation::Read(read) => {
                     let req = DataRequest::builder()
-                        .start(false)
+                        .start(true)
                         .stop(false)
                         .bytes_to_read(read.len())
                         .build();
@@ -113,26 +111,26 @@ impl SpiDevice for BusPirate<Spi> {
                 }
                 Operation::Write(write) => {
                     let req = DataRequest::builder()
-                        .start(false)
+                        .start(true)
                         .stop(false)
                         .bytes_to_write(write)
                         .build();
                     self.send_data_request(req).map(drop)
                 }
-                // TODO: transfer is simultaneous read & write, not sequential.
                 Operation::Transfer(read, write) => {
                     let req = DataRequest::builder()
                         .start(false)
+                        .start_alt(true)
                         .stop(false)
                         .bytes_to_read(read.len())
                         .bytes_to_write(write)
                         .build();
                     self.send_data_request(req).and_then(|r| copy(r, read))
                 }
-                // TODO: transfer is simultaneous read & write, not sequential.
                 Operation::TransferInPlace(words) => {
                     let req = DataRequest::builder()
                         .start(false)
+                        .start_alt(true)
                         .stop(false)
                         .bytes_to_read(words.len())
                         .bytes_to_write(words)
